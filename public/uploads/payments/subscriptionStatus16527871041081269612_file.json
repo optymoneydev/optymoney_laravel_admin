@@ -1,0 +1,10 @@
+POST /augmont/subscriptionStatus HTTP/1.1
+Accept-Encoding:     gzip
+Content-Length:      963
+Content-Type:        application/json
+Host:                gold.optymoney.com
+Request-Id:          JWHN06HJH7xY2u
+User-Agent:          Razorpay-Webhook/v1
+X-Razorpay-Event-Id: JWHN06HJH7xY2u
+
+{"entity":"event","account_id":"acc_JA66KkBRwNqgXl","event":"subscription.cancelled","contains":["subscription"],"payload":{"subscription":{"entity":{"id":"sub_JU9uTjdYdzQAf7","entity":"subscription","plan_id":"plan_JU9uSYXnMWfkNf","customer_id":"cust_JTuQ9vvDEVadsa","status":"cancelled","current_start":1668796200,"current_end":1671388200,"ended_at":1652787100,"quantity":1,"notes":{"merchantTransactionId":"AUGOM_3219_91265_9531862074","userid":"3219","name":"3219_test_investment_700","description":"test_investment_700 with the duration of 700","amount":"700","currency":"INR","metalType":"silver"},"charge_at":null,"start_at":1652918400,"end_at":3228229800,"auth_attempts":0,"total_count":600,"paid_count":6,"customer_notify":false,"created_at":1652324150,"expire_by":1652327747,"short_url":null,"has_scheduled_changes":false,"change_scheduled_at":null,"source":"api","payment_method":"card","offer_id":null,"remaining_count":593}}},"created_at":1652787101}
