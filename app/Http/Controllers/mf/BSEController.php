@@ -5,11 +5,13 @@ namespace App\Http\Controllers\mf;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Users\UsersController;
 use App\Http\Controllers\customer\UserAuthController;
+use App\Http\Controllers\Nsdl\NsdlController;
 use Illuminate\Http\Request;
 Use App\Models\Bfsi_users_detail;
 Use App\Models\Bfsi_user;
 Use App\Models\Bfsi_bank_details;
 use SoapClient;
+use File;
 
 class BSEController extends Controller
 {
@@ -168,6 +170,7 @@ class BSEController extends Controller
     public function createBSE(Request $request) {
         $envBSEDataJson = $this->getEnvData();
         $user = auth('userapi')->user();
+        $id = $user->pk_user_id;
         if($user) {
             $userAuthController = new UserAuthController();
             $userData = $userAuthController->getUserDetails($user->pk_user_id);
@@ -175,256 +178,238 @@ class BSEController extends Controller
             $dobFormatted = \Carbon\Carbon::createFromFormat('Y-m-d', $userData->dob)->format('d/m/Y');
             $client_code = $this->ucc_n_create($user->pk_user_id);
             $pipeValues = [];
-            $userParam = array(
-                "Client_Code_(UCC)" => $client_code,
-                "Primary_Holder_First_Name" => $userData->cust_name,"Primary_Holder_Middle_Name" => "","Primary_Holder_Last_Name" => "",
-                "Tax_Status" => $userData->taxStatus,
-                "Gender" => $userData->sex[0],
-                "Primary_Holder_DOB/Incorporation" => \Carbon\Carbon::createFromFormat('Y-m-d', $userData->dob)->format('d/m/Y'),
-                "Occupation_Code" => $userData->occupationCode,
-                "Holding_Nature" => $userData->clientHolding,
-                "Second_Holder_First_Name" => "","Second_Holder_Middle_Name" => "","Second_Holder_Last_Name" => "",
-                "Third_Holder_First_Name" => "","Third_Holder_Middle_Name" => "","Third_Holder_Last_Name" => "",
-                "Second_Holder_DOB" => "",
-                "Third_Holder_DOB" => "",
-                "Guardian_First_Name" => "","Guardian_Middle_Name" => "","Guardian_Last_Name" => "","Guardian_DOB" => "",
-                "Primary_Holder_PAN_Exempt" => "N","Second_Holder_PAN_Exempt" => "","Third_Holder_PAN_Exempt" => "","Guardian_PAN_Exempt" => "",
-                "Primary_Holder_PAN" => $userData->pan_number,"Second_Holder_PAN" => "","Third_Holder_PAN" => "","Guardian_PAN" => "",
-                "Primary_Holder-_Exempt_Category" => "","Second_Holder_Exempt_Category" => "","Third_Holder_Exempt_Category" => "","Guardian_Exempt_Category" => "",
-                "Client_Type" => "P",
-                "PMS" => "",
-                "Default_DP" => "",
-                "CDSL_DPID" => "",
-                "CDSLCLTID" => "",
-                "CMBP_Id" => "",
-                "NSDLDPID" => "",
-                "NSDLCLTID" => "");
-            $pipeValues[] = implode("|",$userParam);
+        //     $userParam = array(
+        //         "Client_Code_(UCC)" => $client_code,
+        //         "Primary_Holder_First_Name" => $userData->cust_name,"Primary_Holder_Middle_Name" => "","Primary_Holder_Last_Name" => "",
+        //         "Tax_Status" => $userData->taxStatus,
+        //         "Gender" => $userData->sex[0],
+        //         "Primary_Holder_DOB/Incorporation" => \Carbon\Carbon::createFromFormat('Y-m-d', $userData->dob)->format('d/m/Y'),
+        //         "Occupation_Code" => $userData->occupationCode,
+        //         "Holding_Nature" => $userData->clientHolding,
+        //         "Second_Holder_First_Name" => "","Second_Holder_Middle_Name" => "","Second_Holder_Last_Name" => "",
+        //         "Third_Holder_First_Name" => "","Third_Holder_Middle_Name" => "","Third_Holder_Last_Name" => "",
+        //         "Second_Holder_DOB" => "",
+        //         "Third_Holder_DOB" => "",
+        //         "Guardian_First_Name" => "","Guardian_Middle_Name" => "","Guardian_Last_Name" => "","Guardian_DOB" => "",
+        //         "Primary_Holder_PAN_Exempt" => "N","Second_Holder_PAN_Exempt" => "","Third_Holder_PAN_Exempt" => "","Guardian_PAN_Exempt" => "",
+        //         "Primary_Holder_PAN" => $userData->pan_number,"Second_Holder_PAN" => "","Third_Holder_PAN" => "","Guardian_PAN" => "",
+        //         "Primary_Holder-_Exempt_Category" => "","Second_Holder_Exempt_Category" => "","Third_Holder_Exempt_Category" => "","Guardian_Exempt_Category" => "",
+        //         "Client_Type" => "P",
+        //         "PMS" => "",
+        //         "Default_DP" => "",
+        //         "CDSL_DPID" => "",
+        //         "CDSLCLTID" => "",
+        //         "CMBP_Id" => "",
+        //         "NSDLDPID" => "",
+        //         "NSDLCLTID" => "");
+        //     $pipeValues[] = implode("|",$userParam);
 
-            $bankdata = Bfsi_bank_details::where('fr_user_id',$user->pk_user_id)->get();
-            $i = 1; 
-            $j = 1; 
-            $data = [];
-            $banks = [];
-            for ($i = 1; $i <= 5; $i++) {
-                if($i <= count($bankdata)) {
-                    foreach ($bankdata as $bank) {
-                        if($j <= 5) {
-                            if($bank->ac_type == "" || $bank->ac_type == null) {
-                                $data['Account_Type_'.$i] = 'SB';
-                            } else {
-                                if($bank->ac_type == "savings") {
-                                    $data['Account_Type_'.$i] = 'SB';
-                                } else {
-                                    if($bank->ac_type == "current") {
-                                        $data['Account_Type_'.$i] = 'CB';
-                                    }
-                                }
-                            }
-                            $data['Account_No_'.$i] = $bank->acc_no;
-                            $data['MICR_No_'.$i] = "";
-                            $data['IFSC_Code_'.$i] = $bank->ifsc_code;
-                            if($bank->default_bank == null) {
-                                $data['Default_Bank_Flag'] = 'N';
-                            } else {
-                                $data['Default_Bank_Flag'] = $bank->default_bank;
-                            }
-                            $banks[] = implode("|",$data);
-                            $data = [];
-                        }
-                        $j++;
-                    }
-                    $i = $j-1;
-                } else {
-                    $data['Account_Type_'.$i] = "";
-                    $data['Account_No_'.$i] = "";
-                    $data['MICR_No_'.$i] = "";
-                    $data['IFSC_Code_'.$i] = "";
-                    $data['Default_Bank_Flag'] = "";
-                    $banks[] = implode("|",$data);
-                    $data = [];
-                }
-            }
-            $banks_pipevalue = implode("|",$banks);
-            $pipeValues[] = $banks_pipevalue;
-            if($userData->communication_mode == "" || $userData->communication_mode == NULL) {
-                $communication_mode = "E";
+        //     $bankdata = Bfsi_bank_details::where('fr_user_id',$user->pk_user_id)->get();
+        //     $i = 1; 
+        //     $j = 1; 
+        //     $data = [];
+        //     $banks = [];
+        //     for ($i = 1; $i <= 5; $i++) {
+        //         if($i <= count($bankdata)) {
+        //             foreach ($bankdata as $bank) {
+        //                 if($j <= 5) {
+        //                     if($bank->ac_type == "" || $bank->ac_type == null) {
+        //                         $data['Account_Type_'.$i] = 'SB';
+        //                     } else {
+        //                         if($bank->ac_type == "savings") {
+        //                             $data['Account_Type_'.$i] = 'SB';
+        //                         } else {
+        //                             if($bank->ac_type == "current") {
+        //                                 $data['Account_Type_'.$i] = 'CB';
+        //                             }
+        //                         }
+        //                     }
+        //                     $data['Account_No_'.$i] = $bank->acc_no;
+        //                     $data['MICR_No_'.$i] = "";
+        //                     $data['IFSC_Code_'.$i] = $bank->ifsc_code;
+        //                     if($bank->default_bank == null) {
+        //                         $data['Default_Bank_Flag'] = 'N';
+        //                     } else {
+        //                         $data['Default_Bank_Flag'] = $bank->default_bank;
+        //                     }
+        //                     $banks[] = implode("|",$data);
+        //                     $data = [];
+        //                 }
+        //                 $j++;
+        //             }
+        //             $i = $j-1;
+        //         } else {
+        //             $data['Account_Type_'.$i] = "";
+        //             $data['Account_No_'.$i] = "";
+        //             $data['MICR_No_'.$i] = "";
+        //             $data['IFSC_Code_'.$i] = "";
+        //             $data['Default_Bank_Flag'] = "";
+        //             $banks[] = implode("|",$data);
+        //             $data = [];
+        //         }
+        //     }
+        //     $banks_pipevalue = implode("|",$banks);
+        //     $pipeValues[] = $banks_pipevalue;
+        //     if($userData->communication_mode == "" || $userData->communication_mode == NULL) {
+        //         $communication_mode = "E";
+        //     } else {
+        //         $communication_mode = $userData->communication_mode;
+        //     }
+        //     if($userData->isAadhaarUpdated == "Y") {
+        //         $isAadhaarUpdated = "Y";
+        //     } else {
+        //         $isAadhaarUpdated = "N";
+        //     }
+        //     $userParam1 = array(
+        //         "Cheque_name" => "",
+        //         "Div_pay_mode" => "02",
+        //         "Address_1" => str_replace(","," ",str_replace("-","",$userData->address1)),
+        //         "Address_2" => str_replace(","," ",str_replace("-","",$userData->address2)),
+        //         "Address_3" => str_replace(","," ",str_replace("-","",$userData->address3)),
+        //         "City" => $userData->city,"State" => $userData->bsestatecode,
+        //         "Pincode" => $userData->pincode,"Country" => "INDIA",
+        //         "Resi._Phone" => "","Resi._Fax" => "","Office_Phone" => "","Office_Fax" => "","Email" => $userData->email,
+        //         "Communication_Mode" => $communication_mode,
+        //         "Foreign_Address_1" => "","Foreign_Address_2" => "","Foreign_Address_3" => "",
+        //         "Foreign_Address_City" => "","Foreign_Address_Pincode" => "","Foreign_Address_State" => "",
+        //         "Foreign_Address_Country" => "","Foreign_Address_Resi_Phone" => "","Foreign_Address_Fax" => "",
+        //         "Foreign_Address_Off._Phone" => "",
+        //         "Foreign_Address_Off._Fax" => "",
+        //         "Indian_Mobile_No." => $userData->contact_no);
+        //     $userParam1_pipevalue = implode("|",$userParam1);
+        //     $pipeValues[] = $userParam1_pipevalue;
+        //     $userParam2 = array(
+        //         // "Nominee_1_Name" => $userData->nominee_name,"Nominee_1_Relationship" => $userData->r_of_nominee_w_app,"Nominee_1_Applicable(%)" => "100.00","Nominee_1_DOB" => $userData->nominee_dob,"Nominee_1_Minor_Flag" => "N","Nominee_1_Guardian" => "",
+        //         "Nominee_1_Name" => "","Nominee_1_Relationship" => "","Nominee_1_Applicable(%)" => "","Nominee_1_DOB" => "","Nominee_1_Minor_Flag" => "","Nominee_1_Guardian" => "",
+        //         "Nominee_2_Name" => "","Nominee_2_Relationship" => "","Nominee_2_Applicable(%)" => "","Nominee_2_DOB" => "","Nominee_2_Minor_Flag" => "","Nominee_2_Guardian" => "",
+        //         "Nominee_3_Name" => "","Nominee_3_Relationship" => "","Nominee_3_Applicable(%)" => "","Nominee_3_DOB" => "","Nominee_3_Minor_Flag" => "","Nominee3_Guardian" => "",
+        //         "Primary_Holder_KYC_Type" => "K","Primary_Holder__CKYC_Number" => "",
+        //         "Second_Holder_KYC_Type" => "","Second_Holder_CKYC_Number" => "",
+        //         "Third_Holder_KYC_Type" => "","Third_Holder_CKYC_Number" => "",
+        //         "Guardian_KYC_Type" => "","Guardian_CKYC_Number" => "",
+        //         "Primary_Holder_KRA_Exempt_Ref._No." => "",
+        //         "Second_Holder_KRA_Exempt_Ref._No." => "",
+        //         "Third_Holder_KRA_Exempt_Ref._No" => "",
+        //         "Guardian_Exempt_Ref._No" => "",
+        //         "Aadhaar_Updated" => $isAadhaarUpdated,
+        //         "Mapin_Id." => "",
+        //         "Paperless_flag" => "Z",
+        //         "LEI_No" => "",
+        //         "LEI_Validity" => "",
+        //         "Filler_1__(_Mobile_Declaration_Flag_)" => "SE",
+        //         "Filler_2_(Email_Declaration_Flag_)" => "SE",
+        //         "Filler_3" => "");
+        //     $userParam2_pipevalue = implode("|",$userParam2);
+        //     $pipeValues[] = $userParam2_pipevalue;
+        //     $pipeValues_data = implode("|",$pipeValues);
+        //     $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
+        //     if($user->bse_id != null) {
+        //         $reg = "MOD";
+        //     } else {
+        //         $reg = "NEW";
+        //     }
+        //     try {
+        //         $body = array(
+        //                 "UserId" => $envBSEDataJson['bseUserId'],
+        //                 "MemberCode" => $envBSEDataJson['bseMemberID'],
+        //                 "Password" => $envBSEDataJson['bsePassword'],
+        //                 "RegnType" => $reg,
+        //                 "Param" => $pipeValues_data,
+        //                 "Filler1" => "",
+        //                 "Filler2" => ""
+        //         );
+        //         $body_json = json_encode($body);
+        //         $client = new \GuzzleHttp\Client();
+        //         $res = $client->request('POST', 
+        //         explode(',', env('UCC_REG'))[0],[
+        //             'body' => $body_json,
+        //             'headers' => [
+        //                 'Content-Type' => 'application/json',
+        //             ]
+        //         ]);
+        //         $bseStatus = json_decode($res->getBody()->getContents());
+        //         if($bseStatus->Status == 0) {
+        //             Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
+        //                 'bseInput' => $pipeValues_data,
+        //                 'bseOutput' => json_encode($bseStatus),
+        //                 'bseStatus' => "SUCCESS"
+        //             ]);
+        //             $responseObj['status'] = "SUCCESS";
+        //             $responseObj['message'] = $bseStatus->message;
+        //         } else {
+        //             Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
+        //                 'bseInput' => $pipeValues_data,
+        //                 'bseOutput' => json_encode($bseStatus),
+        //                 'bseStatus' => "FAILURE"
+        //             ]);
+        //             $responseObj['status'] = "FAILURE";
+        //             $responseObj['message'] = $bseStatus->Remarks;
+        //         }
+        //     }
+        //     catch ( \Exception $e) {
+        //         $responseObj['status'] = "FAILURE";
+        //         $responseObj['message'] = $e->getMessage();
+        //         return $responseObj;
+        //     }
+
+            $old = ini_set('memory_limit', '8192M');
+            
+            $path = public_path('uploads').'/users/'.$id;
+            $uccFile = request('uccfile');
+            
+            if(!File::exists($path)) {
+                $profile_path = $path.'/profile';
+                File::makeDirectory($path, 0777, true, true);
+                File::makeDirectory($profile_path, 0777, true, true);
             } else {
-                $communication_mode = $userData->communication_mode;
+                $profile_path = $path.'/profile';
+                File::makeDirectory($profile_path, 0777, true, true);
             }
-            if($userData->isAadhaarUpdated == "Y") {
-                $isAadhaarUpdated = "Y";
-            } else {
-                $isAadhaarUpdated = "N";
+
+            $imgData = str_replace(' ','+',$uccFile);
+            $imgData = substr($imgData,strpos($imgData,",")+1);
+            $imgData1 = base64_decode($imgData);
+
+            // Path where the image is going to be saved
+            $uccfileName = $id."_ucc_".$client_code.'.tiff';
+            $filePath = $profile_path."/".$uccfileName;
+            
+            // Write $imgData into the image file
+            $file = fopen($filePath, 'w');
+            fwrite($file, $imgData1);
+            fclose($file);
+            chmod($filePath,0777);
+
+            $imagedata = file_get_contents($filePath);
+            $base64 = base64_encode($imagedata);
+            $r = array();
+
+            $chars = str_split($base64);
+            foreach ($chars as $char) {
+                $r[] = ord($char);
             }
-            $userParam1 = array(
-                "Cheque_name" => "",
-                "Div_pay_mode" => "02",
-                "Address_1" => str_replace(","," ",str_replace("-","",$userData->address1)),
-                "Address_2" => str_replace(","," ",str_replace("-","",$userData->address2)),
-                "Address_3" => str_replace(","," ",str_replace("-","",$userData->address3)),
-                "City" => $userData->city,"State" => $userData->bsestatecode,
-                "Pincode" => $userData->pincode,"Country" => "INDIA",
-                "Resi._Phone" => "","Resi._Fax" => "","Office_Phone" => "","Office_Fax" => "","Email" => $userData->email,
-                "Communication_Mode" => $communication_mode,
-                "Foreign_Address_1" => "","Foreign_Address_2" => "","Foreign_Address_3" => "",
-                "Foreign_Address_City" => "","Foreign_Address_Pincode" => "","Foreign_Address_State" => "",
-                "Foreign_Address_Country" => "","Foreign_Address_Resi_Phone" => "","Foreign_Address_Fax" => "",
-                "Foreign_Address_Off._Phone" => "",
-                "Foreign_Address_Off._Fax" => "",
-                "Indian_Mobile_No." => $userData->contact_no);
-            $userParam1_pipevalue = implode("|",$userParam1);
-            $pipeValues[] = $userParam1_pipevalue;
-            $userParam2 = array(
-                // "Nominee_1_Name" => $userData->nominee_name,"Nominee_1_Relationship" => $userData->r_of_nominee_w_app,"Nominee_1_Applicable(%)" => "100.00","Nominee_1_DOB" => $userData->nominee_dob,"Nominee_1_Minor_Flag" => "N","Nominee_1_Guardian" => "",
-                "Nominee_1_Name" => "","Nominee_1_Relationship" => "","Nominee_1_Applicable(%)" => "","Nominee_1_DOB" => "","Nominee_1_Minor_Flag" => "","Nominee_1_Guardian" => "",
-                "Nominee_2_Name" => "","Nominee_2_Relationship" => "","Nominee_2_Applicable(%)" => "","Nominee_2_DOB" => "","Nominee_2_Minor_Flag" => "","Nominee_2_Guardian" => "",
-                "Nominee_3_Name" => "","Nominee_3_Relationship" => "","Nominee_3_Applicable(%)" => "","Nominee_3_DOB" => "","Nominee_3_Minor_Flag" => "","Nominee3_Guardian" => "",
-                "Primary_Holder_KYC_Type" => "K","Primary_Holder__CKYC_Number" => "",
-                "Second_Holder_KYC_Type" => "","Second_Holder_CKYC_Number" => "",
-                "Third_Holder_KYC_Type" => "","Third_Holder_CKYC_Number" => "",
-                "Guardian_KYC_Type" => "","Guardian_CKYC_Number" => "",
-                "Primary_Holder_KRA_Exempt_Ref._No." => "",
-                "Second_Holder_KRA_Exempt_Ref._No." => "",
-                "Third_Holder_KRA_Exempt_Ref._No" => "",
-                "Guardian_Exempt_Ref._No" => "",
-                "Aadhaar_Updated" => $isAadhaarUpdated,
-                "Mapin_Id." => "",
-                "Paperless_flag" => "Z",
-                "LEI_No" => "",
-                "LEI_Validity" => "",
-                "Filler_1__(_Mobile_Declaration_Flag_)" => "SE",
-                "Filler_2_(Email_Declaration_Flag_)" => "SE",
-                "Filler_3" => "");
-            $userParam2_pipevalue = implode("|",$userParam2);
-            $pipeValues[] = $userParam2_pipevalue;
-            $pipeValues_data = implode("|",$pipeValues);
-            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
-            if($user->bse_id != null) {
-                $reg = "MOD";
-            } else {
-                $reg = "NEW";
-            }
-            try {
-                $body = array(
-                        "UserId" => $envBSEDataJson['bseUserId'],
-                        "MemberCode" => $envBSEDataJson['bseMemberID'],
-                        "Password" => $envBSEDataJson['bsePassword'],
-                        "RegnType" => $reg,
-                        "Param" => $pipeValues_data,
-                        "Filler1" => "",
-                        "Filler2" => ""
-                );
-                $body_json = json_encode($body);
-                $client = new \GuzzleHttp\Client();
-                $res = $client->request('POST', 
-                explode(',', env('UCC_REG'))[0],[
-                    'body' => $body_json,
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                    ]
-                ]);
-                $tokenRes = json_decode($res->getBody()->getContents());
-                return $tokenRes;
-                if($tokenRes->Status == 0) {
-                //     Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
-                //         'fatcaInput' => $body,
-                //         'fatcaOutput' => $data,
-                //         'fatcaStatus' => "SUCCESS"
-                //     ]);
-                //     $responseObj['status'] = "SUCCESS";
-                //     $responseObj['message'] = $bseFatcaStatus[1];
-                } else {
-                //     Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
-                //         'fatcaInput' => $body,
-                //         'fatcaOutput' => $data,
-                //         'fatcaStatus' => "FAILURE"
-                //     ]);
-                //     $responseObj['status'] = "FAILURE";
-                //     $responseObj['message'] = $bseFatcaStatus[1];
-                }
-            }
-            catch ( \Exception $e) {
-                $responseObj['status'] = "FAILURE";
-                $responseObj['message'] = $e->getMessage();
-                return $responseObj;
-            }
+
+            $ucc_form_db_status = Bfsi_users_detail::where('fr_user_id', $id)->update([
+                'ucc_form_filename' => $uccfileName,
+                'ucc_submission' => "Yes"
+            ]);
+            
+
+            // // echo json_encode($r);
+            // // $hash = hash('sha256', serialize($r));
+            // // $base64_encode = base64_encode($hash);
+            // // return json_encode($base64_encode);
+
+            // $ucc_update = $buySell->upload_aof_img($userInfo, $filename, json_encode($r), $res['bse_id']);
+
+            $responseObj['status'] = "SUCCESS";
+            $responseObj['message'] = "UCC Updated";
+            $responseObj['ucc_update'] = $ucc_form_db_status;
         } else {
             $responseObj['status'] = "FAILURE";
             $responseObj['message'] = "Authentication Failed";
         }
         return $responseObj;
-            $context = stream_context_create($opts);
-            $wsdl = "https://bsestarmfdemo.bseindia.com/MFOrderEntry/MFOrder.svc?singleWsdl";
-
-            try {
-                $client = new \SoapClient($wsdl, array(
-                    'stream_context' => $context, 'trace' => true)
-                );
-                $passcode_params = array('MemberId' => 15133, 'UserId' => 1513301, 'Password' => "12345&", 'PassKey' => "ts");
-                $response = $client->getPassword($passcode_params);
-            }
-            catch ( \Exception $e) {
-                return $e->getMessage();
-            }
-
-            // $options = array(
-            //     'cache_wsdl' => 0,
-            //     'trace' => 1,
-            //     'stream_context' => stream_context_create(array(
-            //           'ssl' => array(
-            //                'verify_peer' => false,
-            //                 'verify_peer_name' => false,
-            //                 'allow_self_signed' => true
-            //           )
-            //     )));
-
-            // $soap = new SoapClient("https://bsestarmf.in/StarMFWebService/StarMFWebService.svc?wsdl"); 
-            // try {
-            //     $passcode_params = array('UserId' => 1513301, 'Password' => "12345&", 'PassKey' => "ts");
-            //     $response = $soap->getPassword($passcode_params);
-            //     return $response;
-            //     return $soap->getPasswordResponse();
-                
-
-                // $passKey = $p_key;
-                // $passcode_params = array('arg0' => $password, 'arg1' => $passKey);
-                // $encPass = $soap->getPasscode($passcode_params);            
-                // $encPassword = $encPass->return;
-                // $xml_request =  '<APP_REQ_ROOT>
-                //                     <APP_PAN_DOWN>
-                //                         <APP_PAN_NO>AXFPP0304C</APP_PAN_NO>
-                //                         <APP_MOBILE_NO>'.$mobile.'</APP_MOBILE_NO>
-                //                         <APP_REQ_NO>'.$request_id.'</APP_REQ_NO>
-                //                     </APP_PAN_DOWN>
-                //                 </APP_REQ_ROOT>';
-                // $params = array('arg0' => $xml_request, 'arg1' => $userId, 'arg2' => $encPassword, 'arg3' => $passKey);
-                
-                // $data = $soap->panDownloadDetails($params)->return;
-                // dd($data);
-                // $temp_data = (new GeneralController)->xmlToArray($data)['APP_PAN_DOWN'];
-                // /*---------------------------------  Insert into database -------------------------------------------------------------*/
-                // // $this->db->db_run_query("Insert into kyc_check set kyc_PAN='".$chk_PAN."', req_id='".$request_id."',kyc_res='".$data."'");
-                // $xml=simplexml_load_string($data) or die("Error: Cannot create object");
-                // $kyc_status_xml = $xml->APP_PAN_INQ[0]->APP_STATUS; 
-                // if(strpos($kyc_status_xml,'Not Available') !== false) {
-                //     $val['status'] = "failure";
-                //     $val['msg'] =  "Lets Complete Your KYC to Start Investing";	
-                //     $response_a = "KYCNOT";
-                // } else {
-                //     $val['status'] = "success";
-                //     $val['msg'] =  "Great !! You are Investment ready ! Lets Start";	
-                //     $val['data'] = $temp_data;
-                //     $response_a = "KYC";
-                // }
-                /* update nsdl status to user details */
-                // $this->db->db_run_query("update bfsi_users_details set nsdl_kyc_status = '".$response_a."', nsdl_kyc_res='".$kyc_status_xml."' where fr_user_id='".$this->CONFIG->loggedUserId."'");
-            // }
-            // catch(Exception $e) {
-            //     print_r("@@@@@@@@@@      Exception occured :->      ".$e->getMessage()."\r\n");
-            //     die ($e->getTraceAsString());
-            // }
-            // return json_encode($val);
     }
 
     public function soapPswdResToArr($res, $name_space) {

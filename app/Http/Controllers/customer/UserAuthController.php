@@ -585,10 +585,13 @@ class UserAuthController extends Controller
     public function userProfile() {
         $id = auth('userapi')->user()->pk_user_id;
         $userData = Bfsi_users_detail::where(['fr_user_id' => $id])->get()->first();
+        $path = public_path('uploads').'/users/'.$id.'/profile/'.$userData->signature;
+        $base64 = "data:image/png;base64,".base64_encode(file_get_contents($path));
         $data = [
             "statusCode" => 201,
             "userdata" => auth('userapi')->user(),
-            "profileDate" => $userData
+            "profileDate" => $userData,
+            "path" => $base64
         ];
         return response()->json($data);
     }

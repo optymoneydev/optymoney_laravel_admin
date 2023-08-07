@@ -89,7 +89,7 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
             Route::get('signzyGetURL', [SignzyController::class, 'signzyGetURL'])->name('signzyGetURL'); 
             
             Route::get('createFatcaTest', [BSEController::class, 'createFatcaTest'])->name('createFatcaTest'); 
-            Route::get('createBSE', [BSEController::class, 'createBSE'])->name('createBSE'); 
+            Route::post('createBSE', [BSEController::class, 'createBSE'])->name('createBSE'); 
 
             
             
