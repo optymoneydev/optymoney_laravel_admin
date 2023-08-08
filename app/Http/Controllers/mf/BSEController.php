@@ -302,7 +302,8 @@ class BSEController extends Controller
         //     $userParam2_pipevalue = implode("|",$userParam2);
         //     $pipeValues[] = $userParam2_pipevalue;
         //     $pipeValues_data = implode("|",$pipeValues);
-        //     $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
+            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
+            return $bseGenPassword;
         //     if($user->bse_id != null) {
         //         $reg = "MOD";
         //     } else {
@@ -371,7 +372,7 @@ class BSEController extends Controller
             $imgData1 = base64_decode($imgData);
 
             // Path where the image is going to be saved
-            $uccfileName = $id."_ucc_".$client_code.'.tiff';
+            $uccfileName = $envBSEDataJson['bseMemberID'].$client_code.date("dmY").'.tiff';
             $filePath = $profile_path."/".$uccfileName;
             
             // Write $imgData into the image file
@@ -395,13 +396,93 @@ class BSEController extends Controller
             ]);
             
 
-            // // echo json_encode($r);
-            // // $hash = hash('sha256', serialize($r));
-            // // $base64_encode = base64_encode($hash);
-            // // return json_encode($base64_encode);
+            try {
+                $ucc_file_data = json_encode($r);
+                $body = array(
+                    "Flag" => "UCC", 
+                    "UserId" => $envBSEDataJson['bseUserId'],
+                    "EncryptedPassword" => $bseGenPassword, 
+                    "MemberCode" => $envBSEDataJson['bseMemberID'],
+                    "ClientCode" => $client_code,
+                    "FileName" => $uccfileName,
+                    "DocumentType" => "NRM",
+                    "pFileBytes" => $ucc_file_data,
+                    "Filler1" => "",
+                    "Filler2" => ""
+                );
 
-            // $ucc_update = $buySell->upload_aof_img($userInfo, $filename, json_encode($r), $res['bse_id']);
+                $pipeValues = implode("|",$body);
+                
 
+                $bseUploadImg = $this->bseUploadImg($index, $bselog_json->ResponseString, $pipeValues, $ucc_file_data);
+                $bseUploadImg_json = json_decode($bseUploadImg);
+                if($bseUploadImg_json->Status=="101") {
+                    $res['msg'] = $bseUploadImg_json->ResponseString;
+                    $res['status'] = "failed";
+                } else {
+                    $res['msg'] = $bseUploadImg->ResponseString;
+                    $res['status'] = "success";
+                }
+            function bseUploadImg($index, $bselog_ep, $pipeValues, $filedata) {
+                $data = explode("|",$pipeValues);
+                $curl = curl_init();
+                $doc_type = "NRM";
+                $postfileds = "{\n\t\"ClientCode\":\"".$data[0]."\",\n\t\"DocumentType\":\"".$doc_type."\",\n\t\"EncryptedPassword\":\"".$bseGenPassword."\",\n\t\"FileName\":\"".$data[3]."\",\n\t\"Filler1\":\"null\",\n\t\"Filler2\":\"null\",\n\t\"Flag\":\"UCC\",\n\t\"MemberCode\":\"".$this->CONFIG->bseMemberIds[$index]."\",\n\t\"UserId\":\"".$this->CONFIG->bseUserIds[$index]."\",\n\t\"pFileBytes\":".$filedata."\n}";
+                // $postfileds1 = "{\n\t\"ClientCode\":\"".$data[0]."\",\n\t\"DocumentType\":\"".$doc_type."\",\n\t\"EncryptedPassword\":\"".$bselog_ep."\",\n\t\"FileName\":\"".$data[3]."\",\n\t\"Filler1\":\"null\",\n\t\"Filler2\":\"null\",\n\t\"Flag\":\"UCC\",\n\t\"MemberCode\":\"".$this->CONFIG->bseMemberIds[$index]."\",\n\t\"UserId\":\"".$this->CONFIG->bseUserIds[$index]."\",\n\t\"pFileBytes\":\n}";
+                curl_setopt_array($curl, array(
+                    CURLOPT_URL => $this->CONFIG->UploadFile_imgUploadBSE[$index],
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => "",
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => "POST",
+                    CURLOPT_POSTFIELDS => $postfileds,
+                    CURLOPT_HTTPHEADER => array(
+                        "cache-control: no-cache",
+                        "content-type: application/json"
+                    ),
+                ));
+        
+                $response = curl_exec($curl);
+                $err = curl_error($curl);
+        
+                curl_close($curl);
+        
+                if ($err) {
+                    return "cURL Error #:" . $err;
+                } else {
+                    return $response;
+                }
+            }
+
+                if($bseStatus->Status == 0) {
+                    Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
+                        'bseInput' => $pipeValues_data,
+                        'bseOutput' => json_encode($bseStatus),
+                        'bseStatus' => "SUCCESS"
+                    ]);
+                    $responseObj['status'] = "SUCCESS";
+                    $responseObj['message'] = $bseStatus->message;
+                } else {
+                    Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
+                        'bseInput' => $pipeValues_data,
+                        'bseOutput' => json_encode($bseStatus),
+                        'bseStatus' => "FAILURE"
+                    ]);
+                    $responseObj['status'] = "FAILURE";
+                    $responseObj['message'] = $bseStatus->Remarks;
+                }
+            }
+            catch ( \Exception $e) {
+                $responseObj['status'] = "FAILURE";
+                $responseObj['message'] = $e->getMessage();
+                return $responseObj;
+            }
+
+            
+
+            
             $responseObj['status'] = "SUCCESS";
             $responseObj['message'] = "UCC Updated";
             $responseObj['ucc_update'] = $ucc_form_db_status;
