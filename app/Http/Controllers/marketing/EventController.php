@@ -10,6 +10,7 @@ use GuzzleHttp\Client;
 Use App\Models\Events;
 Use App\Models\EventUsers;
 Use App\Models\Bfsi_user;
+Use App\Models\Bfsi_users_detail;
 use Illuminate\Support\Facades\Hash;
 use View;
 
@@ -134,20 +135,26 @@ class EventController extends Controller
             $pswd = str_random(8);
             $createAccountStatus = Bfsi_user::create([
                 'login_id' => $request->formemail,
+                'password' => "abcdef",
+                'aug_pswd' => Hash::make($pswd),
                 'communication_email' => "Permanent",
                 'user_status' => "Active",
                 'signup_ip' => getenv('REMOTE_ADDR'),
                 'signup_date' => \Carbon\Carbon::now()->timestamp,
                 'contact' => $request->formnumber,
-                'created_from' => "Event - ".$request->url,
+                'created_from' => "Event - ".$request->url
+            ])->pk_user_id;
+            $userStatus = \App\Models\Bfsi_user::where('pk_user_id', $createAccountStatus)->update([
                 'password' => Hash::make($pswd),
                 'aug_pswd' => Hash::make($pswd)
             ]);
-            $updateUserDetails = Bfsi_users_detail::where('fr_user_id', $createAccountStatus['pk_user_id'])->update([
+            $updateUserDetails = Bfsi_users_detail::create([
+                'fr_user_id' => $createAccountStatus,
                 'cust_name' => $request->formname,
                 'contact_no' => $request->formnumber
-            ]);
-            $userData = (new UsersController)->getUserDataByUID($createAccountStatus['pk_user_id']);
+              ]);
+            
+            $userData = (new UsersController)->getUserDataByUID($createAccountStatus);
             $res2 = (new EmailController)->send_user_creation_email_from_event($userData, $pswd);
             $res2 = (new EmailController)->send_event_reg_status($userData, $eventData);
             $data = [

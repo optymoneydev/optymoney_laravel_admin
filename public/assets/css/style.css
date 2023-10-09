@@ -3931,7 +3931,7 @@ button.close {
   font-size: 13px;
 }
 .card .card-body {
-  padding: 40px;
+  /* padding: 40px; */
   background-color: rgba(0, 0, 0, 0);
 }
 .card .card-body p:last-child {

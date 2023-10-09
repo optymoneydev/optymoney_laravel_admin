@@ -725,13 +725,12 @@ class BuyAugmontController extends Controller
         $orderAugmontcrtl = new OrdersAugmontController();
         $general = new GeneralController();
         $orderData = $orderAugmontcrtl->OrdersByTransactionId($request->ao_orders);
-        
         $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
             'razorpayId' => $request->ao_transaction_id
         ]);
         
         $mop = $request->ao_mop;
-        $purchasedPrice = $orderData->totalAmount;
+        $purchasedPrice = $orderData->preTaxAmount;
         $form_params = [
             'lockPrice' => $orderData->lockPrice,
             'emailId' => $orderData->emailId,
@@ -748,7 +747,6 @@ class BuyAugmontController extends Controller
             'mobileNumber' => $orderData->mobileNumber,
             'modeOfPayment' => $mop
         ];
-        
         $currentRates_content = json_decode((new RatesAugmontController)->currentRates());
         $currentRates = $currentRates_content->result->data;
         if($orderData->metalType=="silver") {
@@ -762,10 +760,10 @@ class BuyAugmontController extends Controller
                 $form_params['quantity'] = round($purchasedPrice/$currentRates->rates->gBuy, 3);
             }   
         }
-        
         $augOrderRes = $this->postOrderToAugmont($form_params);
         $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
-            'description' => json_encode($augOrderRes)
+            'description' => json_encode($augOrderRes),
+            'augmont_input' => json_encode($form_params)
         ]);
         
         if($augOrderRes->statusCode==422) {
@@ -824,6 +822,8 @@ class BuyAugmontController extends Controller
         $statusCode = $augOrderRes->statusCode; 
         $augmontRes = $augOrderRes->result->data;
         $orderData->statusCode = "200";
+        $orderData->blockId = $currentRates->blockId;
+        $orderData->lockPrice = $form_params['lockPrice'];
         $orderData->preTaxAmount = $augmontRes->preTaxAmount;
         $orderData->transactionId = $augmontRes->transactionId;
         $orderData->goldBalance = $augmontRes->goldBalance;

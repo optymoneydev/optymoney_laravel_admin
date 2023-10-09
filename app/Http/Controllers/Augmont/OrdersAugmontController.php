@@ -48,7 +48,7 @@ class OrdersAugmontController extends Controller
     }
 
     public function OrdersById($id) {
-        $data = AugmontOrders::where('user_id',$id)->whereNull('invoiceNumber')->orderBy("id", "desc")->get(); 
+        $data = AugmontOrders::where('user_id',$id)->orderBy("id", "desc")->get(); 
         return $data;
     }
 

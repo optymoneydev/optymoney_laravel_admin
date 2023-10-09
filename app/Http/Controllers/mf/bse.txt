@@ -1,0 +1,83 @@
+Fri Sep 08 10:05:38 IST 2023: DEBUG: http-outgoing >> 
+POST /StarMFFileUploadService/StarMFFileUploadService.svc/Secure HTTP/1.1
+Accept-Encoding: gzip,deflate
+Content-Type: application/soap+xml;charset=UTF-8;action="http://tempuri.org/IStarMFFileUploadService/UploadMandateScanFile"
+Content-Length: 1500
+Host: bsestarmfdemo.bseindia.com
+Connection: Keep-Alive
+User-Agent: Apache-HttpClient/4.5.5 (Java/16.0.2)
+
+<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="http://tempuri.org/" xmlns:star="http://schemas.datacontract.org/2004/07/StarMFFileUploadService">
+   <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing"><wsa:Action>http://tempuri.org/IStarMFFileUploadService/UploadMandateScanFile</wsa:Action><wsa:To>https://bsestarmfdemo.bseindia.com/StarMFFileUploadService/StarMFFileUploadService.svc/Secure</wsa:To></soap:Header>
+   <soap:Body>
+      <tem:UploadMandateScanFile>
+         <!--Optional:-->
+         <tem:Data>
+            <!--Optional:-->
+            <star:ClientCode>?</star:ClientCode>
+            <!--Optional:-->
+            <star:EncryptedPassword>?</star:EncryptedPassword>
+            <!--Optional:-->
+            <star:Filler1>?</star:Filler1>
+            <!--Optional:-->
+            <star:Filler2>?</star:Filler2>
+            <!--Optional:-->
+            <star:Flag>?</star:Flag>
+            <!--Optional:-->
+            <star:ImageName>?</star:ImageName>
+            <!--Optional:-->
+            <star:ImageType>?</star:ImageType>
+            <!--Optional:-->
+            <star:MandateId>?</star:MandateId>
+            <!--Optional:-->
+            <star:MandateType>?</star:MandateType>
+            <!--Optional:-->
+            <star:MemberCode>?</star:MemberCode>
+            <!--Optional:-->
+            <star:pFileBytes>cid:305020524789</star:pFileBytes>
+         </tem:Data>
+      </tem:UploadMandateScanFile>
+   </soap:Body>
+</soap:Envelope>
+
+Fri Sep 08 10:05:38 IST 2023: DEBUG: http-incoming << 
+HTTP/1.1 500 Internal Server Error
+Cache-Control: no-cache, no-store, must-revalidate
+Content-Type: application/soap+xml; charset=utf-8
+Server: BSE LTD.
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+Content-Security-Policy: default-src 'self'; img-src 'self'; object-src 'none'; script-src 'self'; connect-src * data: blob: filesystem:; style-src 'self' data: chrome-extension-resource: ; img-src 'self' data: chrome-extension-resource:; frame-src 'self' data: chrome-extension-resource:; font-src 'self' data: chrome-extension-resource:; media-src * data: blob: filesystem:;
+Referrer-Policy: no-referrer | same-origin | origin | strict-origin | no-origin-when-downgrading
+X-Permitted-Cross-Domain-Policies: none
+Expect-CT: max-age=604800, report-uri="https://foo.example/report"
+Access-Control-Allow-Origin: *
+Date: Fri, 08 Sep 2023 04:35:40 GMT
+Content-Length: 5449
+
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing"><s:Header><a:Action s:mustUnderstand="1">http://schemas.microsoft.com/net/2005/12/windowscommunicationfoundation/dispatcher/fault</a:Action></s:Header><s:Body><s:Fault><s:Code><s:Value>s:Sender</s:Value><s:Subcode><s:Value xmlns:a="http://schemas.microsoft.com/net/2005/12/windowscommunicationfoundation/dispatcher">a:DeserializationFailed</s:Value></s:Subcode></s:
+Code><s:Reason><s:Text xml:lang="en-US">The formatter threw an exception while trying to deserialize the message: There was an error while trying to deserialize parameter http://tempuri.org/:Data. The InnerException message was 'There was an error deserializing the object of type StarMFFileUploadService.MandateScanFileData. The characters 'cid:' at offset 0 are not a valid Base64 sequence.'.  Please see InnerException for more details.</s:Text></s:Reason><s:Detail><ExceptionDetail xmlns="http://schemas.datacontract.org/2004/07/System.ServiceModel" xmlns:i="http://www.w3.org/2001/XMLSchema-instance"><HelpLink i:nil="true"/><InnerException><HelpLink i:nil="true"/><InnerException><HelpLink i:nil="true"/><InnerException i:nil="true"/><Message>The characters 'cid:' at offset 0 are not a valid Base64 sequence.</Message><StackTrace>   at System.Xml.ValueHandle.ToByteArray()&#xD;
+   at System.Xml.XmlBaseReader.ReadContentAsBase64()&#xD;
+   at System.Xml.XmlDictionaryReader.ReadElementContentAsBase64()&#xD;
+   at ReadMandateScanFileDataFromXml(XmlReaderDelegator , XmlObjectSerializerReadContext , XmlDictionaryString[] , XmlDictionaryString[] )&#xD;
+   at System.Runtime.Serialization.ClassDataContract.ReadXmlValue(XmlReaderDelegator xmlReader, XmlObjectSerializerReadContext context)&#xD;
+   at System.Runtime.Serialization.XmlObjectSerializerReadContext.InternalDeserialize(XmlReaderDelegator reader, String name, String ns, Type declare
+dType, DataContract&amp; dataContract)&#xD;
+   at System.Runtime.Serialization.XmlObjectSerializerReadContext.InternalDeserialize(XmlReaderDelegator xmlReader, Type declaredType, DataContract dataContract, String name, String ns)&#xD;
+   at System.Runtime.Serialization.DataContractSerializer.InternalReadObject(XmlReaderDelegator xmlReader, Boolean verifyObjectName, DataContractResolver dataContractResolver)&#xD;
+   at System.Runtime.Serialization.XmlObjectSerializer.ReadObjectHandleExceptions(XmlReaderDelegator reader, Boolean verifyObjectName, DataContractResolver dataContractResolver)</StackTrace><Type>System.Xml.XmlException</Type></InnerException><Message>There was an error deserializing the object of type StarMFFileUploadService.MandateScanFileData. The characters 'cid:' at offset 0 are not a valid Base64 sequence.</Message><StackTrace>   at System.Runtime.Serialization.XmlObjectSerializer.ReadObjectHandleExceptions(XmlReaderDelegator reader, Boolean verifyObjectName, DataContractResolver dataContractResolver)&#xD;
+   at System.Runtime.Serialization.DataContractSerializer.ReadObject(XmlDictionaryReader reader, Boolean verifyObjectName)&#xD;
+   at System.ServiceModel.Dispatcher.DataContractSerializerOperationFormatter.PartInfo.ReadObject(XmlDictionaryReader reader, XmlObjectSerializer serializer)&#xD;
+   at System.ServiceModel.Dispatcher.DataContractSerializerOperationFormatter.DeserializeParameterPart(XmlDictionaryReade
+r reader, PartInfo part, Boolean isRequest)</StackTrace><Type>System.Runtime.Serialization.SerializationException</Type></InnerException><Message>The formatter threw an exception while trying to deserialize the message: There was an error while trying to deserialize parameter http://tempuri.org/:Data. The InnerException message was 'There was an error deserializing the object of type StarMFFileUploadService.MandateScanFileData. The characters 'cid:' at offset 0 are not a valid Base64 sequence.'.  Please see InnerException for more details.</Message><StackTrace>   at System.ServiceModel.Dispatcher.DataContractSerializerOperationFormatter.DeserializeParameterPart(XmlDictionaryReader reader, PartInfo part, Boolean isRequest)&#xD;
+   at System.ServiceModel.Dispatcher.DataContractSerializerOperationFormatter.DeserializeParameters(XmlDictionaryReader reader, PartInfo[] parts, Object[] parameters, Boolean isRequest)&#xD;
+   at System.ServiceModel.Dispatcher.DataContractSerializerOperationFormatter.DeserializeBody(XmlDictionaryReader reader, MessageVersion version, String action, MessageDescription messageDescription, Object[] parameters, Boolean isRequest)&#xD;
+   at System.ServiceModel.Dispatcher.OperationFormatter.DeserializeBodyContents(Message message, Object[] parameters, Boolean isRequest)&#xD;
+   at System.ServiceModel.Dispatcher.OperationFormatter.DeserializeRequest(Message message, Object[] parameters)&#xD;
+   at System.Se
+rviceModel.Dispatcher.DispatchOperationRuntime.DeserializeInputs(MessageRpc&amp; rpc)&#xD;
+   at System.ServiceModel.Dispatcher.DispatchOperationRuntime.InvokeBegin(MessageRpc&amp; rpc)&#xD;
+   at System.ServiceModel.Dispatcher.ImmutableDispatchRuntime.ProcessMessage5(MessageRpc&amp; rpc)&#xD;
+   at System.ServiceModel.Dispatcher.ImmutableDispatchRuntime.ProcessMessage11(MessageRpc&amp; rpc)&#xD;
+   at System.ServiceModel.Dispatcher.MessageRpc.Process(Boolean isOperationContextSet)</StackTrace><Type>System.ServiceModel.Dispatcher.NetDispatcherFaultException</Type></ExceptionDetail></s:Detail></s:Fault></s:Body></s:Envelope>

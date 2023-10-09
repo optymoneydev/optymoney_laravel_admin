@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use GuzzleHttp\Client;
 use App\Http\Controllers\Augmont\AugmontController;
+use App\Http\Controllers\mf\BSEController;
+use App\Http\Controllers\mf\StarMFWebServiceController;
 Use App\Models\Bfsi_user;
 Use App\Models\Bfsi_bank_details;
 use View;
@@ -36,7 +38,6 @@ class UsersBankController extends Controller
     }
 
     public function createBankAccount(Request $request) {
-
         $data = $request->all();
         $augmentController = new AugmontController();
         $id = $request->session()->get('id');
@@ -107,9 +108,11 @@ class UsersBankController extends Controller
     }
     
     public function savebankAccountAPI(Request $request) {
+        $bc = new StarMFWebServiceController();
+        $mandateAuth = $bc->eMandateAuthURL('2795', 'OPMY002052', "809676");
+        return $mandateAuth;
         $user = auth('userapi')->user();
         if($user) {
-            
             $id = $user->pk_user_id;
             if($request->id!="") {
                 $upstatus = Bfsi_bank_details::where('pk_bank_detail_id', $request->id)->update([
@@ -149,6 +152,13 @@ class UsersBankController extends Controller
                 $bfsi_bank->ba_state = $request->ba_state;
                 $bfsi_bank->ba_zip = $request->ba_zip;
                 $bfsi_bank_infoSave = $bfsi_bank->save();
+                $bc = new BSEController();
+                $mandate = $bc->mandateRegistration($request->acc_no, $request->ac_type, $request->ifsc_code, $user->bse_id, $id, $bfsi_bank->id);
+                $bc = new StarMFWebServiceController();
+                $mandateAuth = $bc->eMandateAuthURL($bfsi_bank->id, $user->bse_id, $mandate['mandate_id']);
+                // return $mandateAuth;
+                $mandateDetails = $bc->mandateDetails($bfsi_bank->id, $user->bse_id);
+                return $mandateDetails;
                 if($bfsi_bank_infoSave) {
                     $data = [
                         "statusCode" => 201,
@@ -161,14 +171,13 @@ class UsersBankController extends Controller
                     ];
                 }
             }
-		    return $data;
         } else {
             $data = [
                 "statusCode" => 401,
                 "message" => "Unauthenticated_data."
             ];
-            return $data;
         }
+        return $data;
     }
 
     public function getBankAccountByIdAPI(Request $request) {
@@ -201,8 +210,7 @@ class UsersBankController extends Controller
         if($user) {
             $id = $user->pk_user_id;
             $bankAccounts = $this->allUserBanksByID($id);
-            return count($bankAccounts);
-            // $data = Bfsi_bank_details::where('pk_bank_detail_id', $request->id)->delete(); 
+            $data = Bfsi_bank_details::where('pk_bank_detail_id', $request->id)->delete(); 
             $data = [
                 "statusCode" => 201,
                 "data" => "Bank account deleted successfully"

@@ -321,6 +321,38 @@ class MFController extends Controller
         }
     }
 
+    public function getSchemeTransactionsById(Request $request) {
+        $schemeData = Mfscheme::where('channel_partner_code', '=', $request->scheme_code)->get()->first();
+        $scheme = $this->getSchemeData($request->scheme_code);
+        if($scheme == 'KARVY') {
+            $data = [
+                'scheme' => $schemeData,
+                'nav_data' => $this->get_nav($schemeData->isin),
+                'schemetype' => "karvy",
+                'data' => $this->getTransactionsFromKarvy($request->pan, $request->scheme_code, $request->folio_no)
+            ];
+        } else {
+            if($scheme == 'CAMS') {
+                $data = [
+                    'scheme' => $schemeData,
+                    'nav_data' => $this->get_nav($schemeData->isin),
+                    'schemetype' => "cams",
+                    'data' => $this->getTransactionsFromCams($request->pan, $request->scheme_code, $request->folio_no)
+                ];
+            } else {
+                $data = [
+                    'scheme' => $schemeData,
+                    'nav_data' => $this->get_nav($schemeData->isin),
+                    'schemetype' => "",
+                    'data' => ""
+                ];
+            }
+        }
+        return $data;
+    }
+
+    
+
     public function getTransactionsFromCams($pan, $scheme_code, $folio_no) {
         $transactions = Mf_cams::where(['pan' => $pan, 'prodcode' => $scheme_code, 'folio_no' => $folio_no])->get();
         return $transactions;

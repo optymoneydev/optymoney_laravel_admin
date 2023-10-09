@@ -6,12 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Users\UsersController;
 use App\Http\Controllers\customer\UserAuthController;
 use App\Http\Controllers\Nsdl\NsdlController;
+use App\Http\Controllers\mf\PipedController;
+use App\Http\Controllers\GeneralController;
 use Illuminate\Http\Request;
 Use App\Models\Bfsi_users_detail;
 Use App\Models\Bfsi_user;
 Use App\Models\Bfsi_bank_details;
+Use App\Models\Mf_order;
+Use App\Models\Mfscheme;
+use Illuminate\Support\Arr;
 use SoapClient;
 use File;
+use Image;
 
 class BSEController extends Controller
 {
@@ -27,14 +33,114 @@ class BSEController extends Controller
 		return $client_code;
 	}
 
-    public function createFatcaTest(Request $request) {
+    public function updatePswd(Request $request) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://bsestarmfdemo.bseindia.com/Index.aspx');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language: en-US,en;q=0.9,hi;q=0.8',
+            'Cache-Control: max-age=0',
+            'Connection: keep-alive',
+            'Content-Type: application/x-www-form-urlencoded',
+            'Origin: https://bsestarmfdemo.bseindia.com',
+            'Referer: https://bsestarmfdemo.bseindia.com/Index.aspx',
+            'Sec-Fetch-Dest: document',
+            'Sec-Fetch-Mode: navigate',
+            'Sec-Fetch-Site: same-origin',
+            'Sec-Fetch-User: ?1',
+            'Upgrade-Insecure-Requests: 1',
+            'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+            'sec-ch-ua: "Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
+            'sec-ch-ua-mobile: ?0',
+            'sec-ch-ua-platform: "macOS"',
+            'Accept-Encoding: gzip',
+        ]);
+        curl_setopt($ch, CURLOPT_COOKIE, 'ASP.NET_SessionId=j2sh1tiimqdkblslrl423unr');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, 'ToolkitScriptManager1_HiddenField=%3B%3BAjaxControlToolkit%2C+Version%3D3.0.20820.16598%2C+Culture%3Dneutral%2C+PublicKeyToken%3D28f01b0e84b6d53e%3Aen-US%3A707835dd-fa4b-41d1-89e7-6df5d518ffb5%3A411fea1c%3A865923e8%3A77c58d20%3A91bd373d%3A14b56adc%3A596d588c%3A8e72a662%3Aacd642d2%3A269a19ae&__EVENTTARGET=&__EVENTARGUMENT=&__VIEWSTATE=EPVisE1TzGOux4zDVznAqVA1%2FOvDszM8Y49jz%2BACUf0Ed%2B6IjK%2BRt50tUbR6Kw0Qho5c3Qa0KBgNbcpfMkmkArdLNfV58iQlXtkfA0RtjhIUHb5YqvD7WRSYFPs6xgzMAi1G8gLb35zsh9%2BErciN39edcjWCrZ15QCRsTOVA3KOL%2FclOYtFQBcnUmINcpCw3JktbVgO2no1z9M9oYDNYFcluz7n6dhCxLrts9uQNKP1y6cYfnME%2BIZFWDUqNgg21CNCsjvg2JsgOyE4kE1FqfJvqk%2Fc%3D&__VIEWSTATEGENERATOR=90059987&__VIEWSTATEENCRYPTED=&__EVENTVALIDATION=NA5eWpFDh4XLu16r1In8r%2FVoTUE66ojBJEhbb89Y3sCPhncxO67MP1kz16KoKp0ahDwYlPb5ESoWGB5IuKxPoKf7m5o7mlj48RuIFVViFBn2Koku95JoFKJACRUcvbiVQobioMszH5GsAkGJs4LWxP%2B7rQ1IP6sKcPayr4C73p4bGOp%2FyksGAAxu8VlmgXfWFJTBAZfThb7cq5CvaGviW6RnlyS9xJJ94RtQ%2B4MNOJFJ42bJArBBJszOuS6DEN3LGvnoVMjH5wzoAZ%2For34%2BbPRU6u%2Fa4Kn9Y1mAmV1IEh5%2BHcC%2BlHoDAwI59U7xP%2B3i6dTKMQ%3D%3D&txtUserId=1513309&txtMemberId=15133&txtPassword=123456&btnLogin=Login&txtMobileNo=&txtOTP=');
+
+        $response = curl_exec($ch);
+
+        curl_close($ch);
+        return $response;
+        curl_close($ch);
+
+
+
         $envBSEDataJson = $this->getEnvData();
+        $user = auth('userapi')->user();
+        if($user) {
+            // if($envBSEDataJson['bsePassword'] == "")
+            $newpswd = "654321";
+            $pswdBSEArr = array("OLD PASSWORD" => $envBSEDataJson['bsePassword'],
+						"NEW PASSWORD" => $newpswd,
+						"CONF PASSWORD" => $newpswd);
+            $pipeValues = implode("|",$pswdBSEArr);
+            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
+            try {
+                $headers = [
+                'Content-Type' => 'application/soap+xml; charset=utf-8',
+                'SOAPAction' => $envBSEDataJson['soapFatcaUrl'],
+                'To' => $envBSEDataJson['svcUploadUrl']
+                ];
+                $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="'.$envBSEDataJson['name_space'].'">
+                <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                    <wsa:Action>'.$envBSEDataJson['soapFatcaUrl'].'</wsa:Action>
+                    <wsa:To>'.$envBSEDataJson['svcUploadUrl'].'</wsa:To>
+                </soap:Header>
+                <soap:Body>
+                    <ns:MFAPI>
+                        <ns:Flag>04</ns:Flag>
+                        <ns:UserId>'.$envBSEDataJson['bseUserId'].'</ns:UserId>
+                        <ns:EncryptedPassword>'.$bseGenPassword.'</ns:EncryptedPassword>
+                        <ns:param>'.$pipeValues.'</ns:param>
+                    </ns:MFAPI>
+                </soap:Body>
+                </soap:Envelope>';
+                return $body;
+                $res = $this->soapCall($envBSEDataJson['svcUploadUrl'], $body, $headers);
+                return $res;
+                $data = $this->soapFatcaResToArr($res, $envBSEDataJson['name_space']);
+                $bseFatcaStatus = explode('|', $data[0]);
+                if($bseFatcaStatus[0] == "100") {
+                    Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
+                        'fatcaInput' => $body,
+                        'fatcaOutput' => $data,
+                        'fatcaStatus' => "SUCCESS"
+                    ]);
+                    $responseObj['status'] = "SUCCESS";
+                    $responseObj['message'] = $bseFatcaStatus[1];
+                } else {
+                    Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
+                        'fatcaInput' => $body,
+                        'fatcaOutput' => $data,
+                        'fatcaStatus' => "FAILURE"
+                    ]);
+                    $responseObj['status'] = "FAILURE";
+                    $responseObj['message'] = $bseFatcaStatus[1];
+                }
+            }
+            catch ( \Exception $e) {
+                $responseObj['status'] = "FAILURE";
+                $responseObj['message'] = $e->getMessage();
+                return $responseObj;
+            }
+        } else {
+            $responseObj['status'] = "FAILURE";
+            $responseObj['message'] = "Authentication Failed";
+        }
+        return $responseObj;
+    }
+
+    public function createFatcaTest(Request $request) {
+        $bseAuthData = $this->getBseAuthData();
+        $envBSEFatcaDataJson = $this->getFatcaData();
         $user = auth('userapi')->user();
         if($user) {
             $userAuthController = new UserAuthController();
             $userData = $userAuthController->getUserDetails($user->pk_user_id);
             $client_code = $this->ucc_n_create($user->pk_user_id);
-
             $date = date('Y-m-d H:i:s');
             $dobFormatted = \Carbon\Carbon::createFromFormat('Y-m-d', $userData->dob)->format('d/m/Y');
             $transBSEArr = array("PAN_RP" => $userData->pan_number,
@@ -113,29 +219,29 @@ class BSEController extends Controller
 						"DOC1" => "",
 						"DOC2" => "");
             $pipeValues = implode("|",$transBSEArr);
-            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
+            $bseGenPassword = $this->bseGenPassword($envBSEFatcaDataJson['soapPswdUrl'], $envBSEFatcaDataJson['svcUploadUrl'], $envBSEFatcaDataJson['name_space'], $bseAuthData['bseUserId'], $bseAuthData['bseMemberId'], $bseAuthData['bsePassword']);
             try {
                 $headers = [
                 'Content-Type' => 'application/soap+xml; charset=utf-8',
-                'SOAPAction' => $envBSEDataJson['soapFatcaUrl'],
-                'To' => $envBSEDataJson['svcUploadUrl']
+                'SOAPAction' => $envBSEFatcaDataJson['soapFatcaUrl'],
+                'To' => $envBSEFatcaDataJson['svcUploadUrl']
                 ];
-                $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="'.$envBSEDataJson['name_space'].'">
+                $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="'.$envBSEFatcaDataJson['name_space'].'">
                 <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
-                    <wsa:Action>'.$envBSEDataJson['soapFatcaUrl'].'</wsa:Action>
-                    <wsa:To>'.$envBSEDataJson['svcUploadUrl'].'</wsa:To>
+                    <wsa:Action>'.$envBSEFatcaDataJson['soapFatcaUrl'].'</wsa:Action>
+                    <wsa:To>'.$envBSEFatcaDataJson['svcUploadUrl'].'</wsa:To>
                 </soap:Header>
                 <soap:Body>
                     <ns:MFAPI>
                         <ns:Flag>01</ns:Flag>
-                        <ns:UserId>'.$envBSEDataJson['bseUserId'].'</ns:UserId>
+                        <ns:UserId>'.$bseAuthData['bseUserId'].'</ns:UserId>
                         <ns:EncryptedPassword>'.$bseGenPassword.'</ns:EncryptedPassword>
                         <ns:param>'.$pipeValues.'</ns:param>
                     </ns:MFAPI>
                 </soap:Body>
                 </soap:Envelope>';
-                $res = $this->soapCall($envBSEDataJson['svcUploadUrl'], $body, $headers);
-                $data = $this->soapFatcaResToArr($res, $envBSEDataJson['name_space']);
+                $res = $this->soapCall($envBSEFatcaDataJson['svcUploadUrl'], $body, $headers);
+                $data = $this->soapFatcaResToArr($res, $envBSEFatcaDataJson['name_space']);
                 $bseFatcaStatus = explode('|', $data[0]);
                 if($bseFatcaStatus[0] == "100") {
                     Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
@@ -168,8 +274,9 @@ class BSEController extends Controller
     }
 
     public function createBSE(Request $request) {
-        return $this->uploadAOF($request);
-        $envBSEDataJson = $this->getEnvData();
+        $bseAuthData = $this->getBseAuthData();
+        $envBseAOFUploadJson = $this->getBseAOFUploadData();
+        $envBSEDataJson = $this->getUCCData();
         $user = auth('userapi')->user();
         $id = $user->pk_user_id;
         if($user) {
@@ -177,143 +284,22 @@ class BSEController extends Controller
             $userData = $userAuthController->getUserDetails($user->pk_user_id);
             $date = date('Y-m-d H:i:s');
             $dobFormatted = \Carbon\Carbon::createFromFormat('Y-m-d', $userData->dob)->format('d/m/Y');
-            $client_code = $this->ucc_n_create($user->pk_user_id);
-            $pipeValues = [];
-            $userParam = array(
-                "Client_Code_(UCC)" => $client_code,
-                "Primary_Holder_First_Name" => $userData->cust_name,"Primary_Holder_Middle_Name" => "","Primary_Holder_Last_Name" => "",
-                "Tax_Status" => $userData->taxStatus,
-                "Gender" => $userData->sex[0],
-                "Primary_Holder_DOB/Incorporation" => \Carbon\Carbon::createFromFormat('Y-m-d', $userData->dob)->format('d/m/Y'),
-                "Occupation_Code" => $userData->occupationCode,
-                "Holding_Nature" => $userData->clientHolding,
-                "Second_Holder_First_Name" => "","Second_Holder_Middle_Name" => "","Second_Holder_Last_Name" => "",
-                "Third_Holder_First_Name" => "","Third_Holder_Middle_Name" => "","Third_Holder_Last_Name" => "",
-                "Second_Holder_DOB" => "",
-                "Third_Holder_DOB" => "",
-                "Guardian_First_Name" => "","Guardian_Middle_Name" => "","Guardian_Last_Name" => "","Guardian_DOB" => "",
-                "Primary_Holder_PAN_Exempt" => "N","Second_Holder_PAN_Exempt" => "","Third_Holder_PAN_Exempt" => "","Guardian_PAN_Exempt" => "",
-                "Primary_Holder_PAN" => $userData->pan_number,"Second_Holder_PAN" => "","Third_Holder_PAN" => "","Guardian_PAN" => "",
-                "Primary_Holder-_Exempt_Category" => "","Second_Holder_Exempt_Category" => "","Third_Holder_Exempt_Category" => "","Guardian_Exempt_Category" => "",
-                "Client_Type" => "P",
-                "PMS" => "",
-                "Default_DP" => "",
-                "CDSL_DPID" => "",
-                "CDSLCLTID" => "",
-                "CMBP_Id" => "",
-                "NSDLDPID" => "",
-                "NSDLCLTID" => "");
-            $pipeValues[] = implode("|",$userParam);
-
-            $bankdata = Bfsi_bank_details::where('fr_user_id',$user->pk_user_id)->get();
-            $i = 1; 
-            $j = 1; 
-            $data = [];
-            $banks = [];
-            for ($i = 1; $i <= 5; $i++) {
-                if($i <= count($bankdata)) {
-                    foreach ($bankdata as $bank) {
-                        if($j <= 5) {
-                            if($bank->ac_type == "" || $bank->ac_type == null) {
-                                $data['Account_Type_'.$i] = 'SB';
-                            } else {
-                                if($bank->ac_type == "savings") {
-                                    $data['Account_Type_'.$i] = 'SB';
-                                } else {
-                                    if($bank->ac_type == "current") {
-                                        $data['Account_Type_'.$i] = 'CB';
-                                    }
-                                }
-                            }
-                            $data['Account_No_'.$i] = $bank->acc_no;
-                            $data['MICR_No_'.$i] = "";
-                            $data['IFSC_Code_'.$i] = $bank->ifsc_code;
-                            if($bank->default_bank == null) {
-                                $data['Default_Bank_Flag'] = 'N';
-                            } else {
-                                $data['Default_Bank_Flag'] = $bank->default_bank;
-                            }
-                            $banks[] = implode("|",$data);
-                            $data = [];
-                        }
-                        $j++;
-                    }
-                    $i = $j-1;
-                } else {
-                    $data['Account_Type_'.$i] = "";
-                    $data['Account_No_'.$i] = "";
-                    $data['MICR_No_'.$i] = "";
-                    $data['IFSC_Code_'.$i] = "";
-                    $data['Default_Bank_Flag'] = "";
-                    $banks[] = implode("|",$data);
-                    $data = [];
-                }
-            }
-            $banks_pipevalue = implode("|",$banks);
-            $pipeValues[] = $banks_pipevalue;
-            if($userData->communication_mode == "" || $userData->communication_mode == NULL) {
-                $communication_mode = "E";
-            } else {
-                $communication_mode = $userData->communication_mode;
-            }
-            if($userData->isAadhaarUpdated == "Y") {
-                $isAadhaarUpdated = "Y";
-            } else {
-                $isAadhaarUpdated = "N";
-            }
-            $userParam1 = array(
-                "Cheque_name" => "",
-                "Div_pay_mode" => "02",
-                "Address_1" => str_replace(","," ",str_replace("-","",$userData->address1)),
-                "Address_2" => str_replace(","," ",str_replace("-","",$userData->address2)),
-                "Address_3" => str_replace(","," ",str_replace("-","",$userData->address3)),
-                "City" => $userData->city,"State" => $userData->bsestatecode,
-                "Pincode" => $userData->pincode,"Country" => "INDIA",
-                "Resi._Phone" => "","Resi._Fax" => "","Office_Phone" => "","Office_Fax" => "","Email" => $userData->email,
-                "Communication_Mode" => $communication_mode,
-                "Foreign_Address_1" => "","Foreign_Address_2" => "","Foreign_Address_3" => "",
-                "Foreign_Address_City" => "","Foreign_Address_Pincode" => "","Foreign_Address_State" => "",
-                "Foreign_Address_Country" => "","Foreign_Address_Resi_Phone" => "","Foreign_Address_Fax" => "",
-                "Foreign_Address_Off._Phone" => "",
-                "Foreign_Address_Off._Fax" => "",
-                "Indian_Mobile_No." => $userData->contact_no);
-            $userParam1_pipevalue = implode("|",$userParam1);
-            $pipeValues[] = $userParam1_pipevalue;
-            $userParam2 = array(
-                // "Nominee_1_Name" => $userData->nominee_name,"Nominee_1_Relationship" => $userData->r_of_nominee_w_app,"Nominee_1_Applicable(%)" => "100.00","Nominee_1_DOB" => $userData->nominee_dob,"Nominee_1_Minor_Flag" => "N","Nominee_1_Guardian" => "",
-                "Nominee_1_Name" => "","Nominee_1_Relationship" => "","Nominee_1_Applicable(%)" => "","Nominee_1_DOB" => "","Nominee_1_Minor_Flag" => "","Nominee_1_Guardian" => "",
-                "Nominee_2_Name" => "","Nominee_2_Relationship" => "","Nominee_2_Applicable(%)" => "","Nominee_2_DOB" => "","Nominee_2_Minor_Flag" => "","Nominee_2_Guardian" => "",
-                "Nominee_3_Name" => "","Nominee_3_Relationship" => "","Nominee_3_Applicable(%)" => "","Nominee_3_DOB" => "","Nominee_3_Minor_Flag" => "","Nominee3_Guardian" => "",
-                "Primary_Holder_KYC_Type" => "K","Primary_Holder__CKYC_Number" => "",
-                "Second_Holder_KYC_Type" => "","Second_Holder_CKYC_Number" => "",
-                "Third_Holder_KYC_Type" => "","Third_Holder_CKYC_Number" => "",
-                "Guardian_KYC_Type" => "","Guardian_CKYC_Number" => "",
-                "Primary_Holder_KRA_Exempt_Ref._No." => "",
-                "Second_Holder_KRA_Exempt_Ref._No." => "",
-                "Third_Holder_KRA_Exempt_Ref._No" => "",
-                "Guardian_Exempt_Ref._No" => "",
-                "Aadhaar_Updated" => $isAadhaarUpdated,
-                "Mapin_Id." => "",
-                "Paperless_flag" => "Z",
-                "LEI_No" => "",
-                "LEI_Validity" => "",
-                "Filler_1__(_Mobile_Declaration_Flag_)" => "SE",
-                "Filler_2_(Email_Declaration_Flag_)" => "SE",
-                "Filler_3" => "");
-            $userParam2_pipevalue = implode("|",$userParam2);
-            $pipeValues[] = $userParam2_pipevalue;
-            $pipeValues_data = implode("|",$pipeValues);
-            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
             if($user->bse_id != null) {
                 $reg = "MOD";
+                $client_code = $user->bse_id;
             } else {
                 $reg = "NEW";
+                $client_code = $this->ucc_n_create($user->pk_user_id);
             }
+            $PipedController = new PipedController();
+            $pipeValues_data = $PipedController->ucc_creation($client_code, $userData, $user);
+            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $bseAuthData['bseUserId'], $bseAuthData['bseMemberId'], $bseAuthData['bsePassword']);
+            
             try {
                 $body = array(
-                        "UserId" => $envBSEDataJson['bseUserId'],
-                        "MemberCode" => $envBSEDataJson['bseMemberID'],
-                        "Password" => $envBSEDataJson['bsePassword'],
+                        "UserId" => $bseAuthData['bseUserId'],
+                        "MemberCode" => $bseAuthData['bseMemberID'],
+                        "Password" => $bseAuthData['bsePassword'],
                         "RegnType" => $reg,
                         "Param" => $pipeValues_data,
                         "Filler1" => "",
@@ -322,7 +308,7 @@ class BSEController extends Controller
                 $body_json = json_encode($body);
                 $client = new \GuzzleHttp\Client();
                 $res = $client->request('POST', 
-                explode(',', env('UCC_REG'))[0],[
+                explode(',', $envBSEDataJson['ucc_reg'])[0],[
                     'body' => $body_json,
                     'headers' => [
                         'Content-Type' => 'application/json',
@@ -335,8 +321,15 @@ class BSEController extends Controller
                         'bseOutput' => json_encode($bseStatus),
                         'bseStatus' => "SUCCESS"
                     ]);
+                    Bfsi_user::where('pk_user_id', $user->pk_user_id)->update([
+                        'bse_id' => $client_code
+                    ]);
                     $responseObj['status'] = "SUCCESS";
                     $responseObj['message'] = $bseStatus->message;
+                    if($user->bse_id == null) {
+                        $responseObj['aof_upload'] = $this->uploadAOF($request);
+                    }
+                    
                 } else {
                     Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
                         'bseInput' => $pipeValues_data,
@@ -360,16 +353,16 @@ class BSEController extends Controller
     }
 
     public function uploadAOF(Request $request) {
-        $envBSEDataJson = $this->getEnvData();
+        $bseAuthData = $this->getBseAuthData();
+        $envBseAOFUploadJson = $this->getBseAOFUploadData();
         $user = auth('userapi')->user();
         $id = $user->pk_user_id;
         if($user) {
             $userAuthController = new UserAuthController();
             $userData = $userAuthController->getUserDetails($user->pk_user_id);
             $client_code = $this->ucc_n_create($user->pk_user_id);
+            $bseGenPassword = $this->bseGenPasswordForUpload($envBseAOFUploadJson['soapFileUploadGetPswdAction'], $envBseAOFUploadJson['soapFileUploadGetPswdTo'], $envBseAOFUploadJson['soapXmlnsTem'], $envBseAOFUploadJson['soapXmlnsStar'], $bseAuthData['bseUserId'], $bseAuthData['bseMemberId'], $bseAuthData['bsePassword']);
             
-            $bseGenPassword = $this->bseGenPassword($envBSEDataJson['soapPswdUrl'], $envBSEDataJson['svcUploadUrl'], $envBSEDataJson['name_space'], $envBSEDataJson['bseUserId'], $envBSEDataJson['bseMemberID'], $envBSEDataJson['bsePassword']);
-        
             $old = ini_set('memory_limit', '8192M');
             
             $path = public_path('uploads').'/users/'.$id;
@@ -388,11 +381,9 @@ class BSEController extends Controller
             $imgData = substr($imgData,strpos($imgData,",")+1);
             $imgData1 = base64_decode($imgData);
 
-            // Path where the image is going to be saved
-            $uccfileName = $envBSEDataJson['bseMemberID'].$client_code.date("dmY").'.tiff';
+            $uccfileName = $bseAuthData['bseMemberId'].$client_code.date("dmY").'.tiff';
             $filePath = $profile_path."/".$uccfileName;
             
-            // Write $imgData into the image file
             $file = fopen($filePath, 'w');
             fwrite($file, $imgData1);
             fclose($file);
@@ -400,117 +391,73 @@ class BSEController extends Controller
 
             $imagedata = file_get_contents($filePath);
             $base64 = base64_encode($imagedata);
-            $r = array();
 
+            $r = array();
             $chars = str_split($base64);
+        
             foreach ($chars as $char) {
                 $r[] = ord($char);
             }
-
             $ucc_form_db_status = Bfsi_users_detail::where('fr_user_id', $id)->update([
                 'ucc_form_filename' => $uccfileName,
                 'ucc_submission' => "Yes"
             ]);
 
             try {
-                $ucc_file_data = json_encode($r);
-                $body = array(
-                    "Flag" => "UCC", 
-                    "UserId" => $envBSEDataJson['bseUserId'],
-                    "EncryptedPassword" => $bseGenPassword, 
-                    "MemberCode" => $envBSEDataJson['bseMemberID'],
-                    "ClientCode" => $client_code,
-                    "FileName" => $uccfileName,
-                    "DocumentType" => "NRM",
-                    "pFileBytes" => $ucc_file_data,
-                    "Filler1" => "",
-                    "Filler2" => ""
-                );
+                $headers = [
+                    'Content-Type' => 'application/soap+xml; charset=utf-8',
+                    'SOAPAction' => $envBseAOFUploadJson['soapFileUploadAction'],
+                    'To' => $envBseAOFUploadJson['soapFileUploadGetPswdTo']
+                ];
 
-                $body_json = json_encode($body);
-                $client = new \GuzzleHttp\Client();
-                $res = $client->request('POST', 
-                explode(',', env('UPLOADFILE_IMGUPLOADBSE'))[0],[
-                    'body' => $body_json,
-                    'headers' => [
-                        'Content-Type' => 'application/json',
-                    ]
-                ]);
-                return json_encode($res); //->getBody();
-                $bseStatus = json_decode($res->getBody()->getContents());
-                return $bseStatus;
-            //     $bseUploadImg = $this->bseUploadImg($index, $bselog_json->ResponseString, $pipeValues, $ucc_file_data);
-            //     $bseUploadImg_json = json_decode($bseUploadImg);
-            //     if($bseUploadImg_json->Status=="101") {
-            //         $res['msg'] = $bseUploadImg_json->ResponseString;
-            //         $res['status'] = "failed";
-            //     } else {
-            //         $res['msg'] = $bseUploadImg->ResponseString;
-            //         $res['status'] = "success";
-            //     }
-            // function bseUploadImg($index, $bselog_ep, $pipeValues, $filedata) {
-            //     $data = explode("|",$pipeValues);
-            //     $curl = curl_init();
-            //     $doc_type = "NRM";
-            //     $postfileds = "{\n\t\"ClientCode\":\"".$data[0]."\",\n\t\"DocumentType\":\"".$doc_type."\",\n\t\"EncryptedPassword\":\"".$bseGenPassword."\",\n\t\"FileName\":\"".$data[3]."\",\n\t\"Filler1\":\"null\",\n\t\"Filler2\":\"null\",\n\t\"Flag\":\"UCC\",\n\t\"MemberCode\":\"".$this->CONFIG->bseMemberIds[$index]."\",\n\t\"UserId\":\"".$this->CONFIG->bseUserIds[$index]."\",\n\t\"pFileBytes\":".$filedata."\n}";
-            //     // $postfileds1 = "{\n\t\"ClientCode\":\"".$data[0]."\",\n\t\"DocumentType\":\"".$doc_type."\",\n\t\"EncryptedPassword\":\"".$bselog_ep."\",\n\t\"FileName\":\"".$data[3]."\",\n\t\"Filler1\":\"null\",\n\t\"Filler2\":\"null\",\n\t\"Flag\":\"UCC\",\n\t\"MemberCode\":\"".$this->CONFIG->bseMemberIds[$index]."\",\n\t\"UserId\":\"".$this->CONFIG->bseUserIds[$index]."\",\n\t\"pFileBytes\":\n}";
-            //     curl_setopt_array($curl, array(
-            //         CURLOPT_URL => $this->CONFIG->UploadFile_imgUploadBSE[$index],
-            //         CURLOPT_RETURNTRANSFER => true,
-            //         CURLOPT_ENCODING => "",
-            //         CURLOPT_MAXREDIRS => 10,
-            //         CURLOPT_TIMEOUT => 30,
-            //         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            //         CURLOPT_CUSTOMREQUEST => "POST",
-            //         CURLOPT_POSTFIELDS => $postfileds,
-            //         CURLOPT_HTTPHEADER => array(
-            //             "cache-control: no-cache",
-            //             "content-type: application/json"
-            //         ),
-            //     ));
-        
-            //     $response = curl_exec($curl);
-            //     $err = curl_error($curl);
-        
-            //     curl_close($curl);
-        
-            //     if ($err) {
-            //         return "cURL Error #:" . $err;
-            //     } else {
-            //         return $response;
-            //     }
-            // }
-
-                if($bseStatus->Status == 0) {
-                    Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
-                        'bseInput' => $pipeValues_data,
-                        'bseOutput' => json_encode($bseStatus),
-                        'bseStatus' => "SUCCESS"
+                $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="'.$envBseAOFUploadJson['soapXmlnsTem'].'" xmlns:star="'.$envBseAOFUploadJson['soapXmlnsStar'].'">
+                    <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                        <wsa:Action>'.$envBseAOFUploadJson['soapFileUploadAction'].'</wsa:Action>
+                        <wsa:To>'.$envBseAOFUploadJson['soapFileUploadGetPswdTo'].'</wsa:To>
+                    </soap:Header>
+                    <soap:Body>
+                        <tem:UploadFile>
+                            <tem:data>
+                                <star:ClientCode>'.$user->bse_id.'</star:ClientCode>
+                                <star:DocumentType>Nrm</star:DocumentType>
+                                <star:EncryptedPassword>'.$bseGenPassword.'</star:EncryptedPassword>
+                                <star:FileName>'.$uccfileName.'</star:FileName>
+                                <star:Filler1>?</star:Filler1>
+                                <star:Filler2>?</star:Filler2>
+                                <star:Flag>UCC</star:Flag>
+                                <star:MemberCode>'.$bseAuthData['bseMemberId'].'</star:MemberCode>
+                                <star:UserId>'.$bseAuthData['bseUserId'].'</star:UserId>
+                                <star:pFileBytes>'.$base64.'</star:pFileBytes>
+                            </tem:data>
+                        </tem:UploadFile>
+                    </soap:Body>
+                </soap:Envelope>';
+                $res = $this->soapCall($envBseAOFUploadJson['soapFileUploadGetPswdTo'], $body, $headers);
+                $xmlObject = simplexml_load_string($res);
+                $xmlObject->registerXPathNamespace('b', "http://schemas.datacontract.org/2004/07/StarMFFileUploadService");
+                $status = $xmlObject->xpath('//b:Status')[0];
+                $responseString = $xmlObject->xpath('//b:ResponseString');
+                if($status == "100") {
+                    $ucc_form_db_status = Bfsi_users_detail::where('fr_user_id', $id)->update([
+                        'aofInput' => $body,
+                        'aofOutput' => $res,
+                        'aofStatus' => $status
                     ]);
                     $responseObj['status'] = "SUCCESS";
-                    $responseObj['message'] = $bseStatus->message;
+                    $responseObj['message'] = $responseString[0];
                 } else {
-                    Bfsi_users_detail::where('fr_user_id', $user->pk_user_id)->update([
-                        'bseInput' => $pipeValues_data,
-                        'bseOutput' => json_encode($bseStatus),
-                        'bseStatus' => "FAILURE"
+                    $ucc_form_db_status = Bfsi_users_detail::where('fr_user_id', $id)->update([
+                        'aofInput' => $body,
+                        'aofOutput' => $res,
+                        'aofStatus' => $status
                     ]);
                     $responseObj['status'] = "FAILURE";
-                    $responseObj['message'] = $bseStatus->Remarks;
+                    $responseObj['message'] = $responseString[0];
                 }
             }
             catch ( \Exception $e) {
-                $responseObj['status'] = "FAILURE";
-                $responseObj['message'] = $e->getMessage();
-                return $responseObj;
+                return $e;
             }
-
-            
-
-            
-            $responseObj['status'] = "SUCCESS";
-            $responseObj['message'] = "UCC Updated";
-            $responseObj['ucc_update'] = $ucc_form_db_status;
         } else {
             $responseObj['status'] = "FAILURE";
             $responseObj['message'] = "Authentication Failed";
@@ -518,10 +465,142 @@ class BSEController extends Controller
         return $responseObj;
     }
 
+    public function purchaseLumpsum(Request $request) {
+        $bseAuthData = $this->getBseAuthData();
+        $envBseMFOrderJson = $this->getBseOrderEnvData();
+        $PipedController = new PipedController();
+        $GeneralController = new GeneralController();
+        $user = auth('userapi')->user();
+        if($user) {
+            $order_id = Mf_order::all()->last()->pk_order_id;
+            $unique_id = "order_".sprintf('%04d', $order_id+1);
+            $ref_no    = date("Ymd").$user->pk_user_id.sprintf('%05d', $order_id+1);
+            $schemeDetails = Mfscheme::where('pk_nav_id', $request->sch_id)->get()->first();
+            $bseGenPassword = $this->bseGenPasswordForOrder($envBseMFOrderJson['bseMforderGetPswdAction'], $envBseMFOrderJson['bserMforderTo'], 
+                    $envBseMFOrderJson['bserMforderNameSpace'], $bseAuthData);
+            $pipeValues_data = $PipedController->purchaseLumpsum($bseAuthData, $user, $request, $ref_no, $schemeDetails->scheme_code, $GeneralController->getIp($request), $bseGenPassword);
+            $order_db_status = Mf_order::create([
+                'order_ref_no' => $ref_no, 
+                'unique_ref_no' => $unique_id,
+                // 'bse_order_id', 
+                'fr_user_id' => $user->pk_user_id,
+                'folio_no', 
+                'scheme_code' => $schemeDetails->scheme_code,
+                'scheme_name' => $schemeDetails->scheme_name,
+                'scheme_type' => $schemeDetails->scheme_type,
+                // 'inv_name', 
+                // 'trxntype', 
+                // 'trxnno', 
+                // 'trxnmode', 
+                'trxnstatus' => "Pending",
+                // 'traddate', 
+                // 'postdate', 
+                'purprice' => $schemeDetails->net_asset_value,
+                // 'units', 
+                'amount' => $request->lumpsumPurchaseAmount,
+                // 'pan', 
+                // 'euin', 
+                'pipe_value' => $pipeValues_data,
+                // 'bse_remarks', 
+                // 'payment_option', 
+                'order_date' => date("Ymd"),
+                'created_ip' => $GeneralController->getIp($request),
+            ]);
+            try {
+                $headers = [
+                    'Content-Type' => 'application/soap+xml; charset=utf-8',
+                    'SOAPAction' => $envBseMFOrderJson['bserMforderOrderEntryAction'],
+                    'To' => $envBseMFOrderJson['bserMforderTo']
+                ];
+                $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:bses="http://bsestarmf.in/">
+                <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                <wsa:Action>'.$envBseMFOrderJson['bserMforderOrderEntryAction'].'</wsa:Action>
+                <wsa:To>'.$envBseMFOrderJson['bserMforderTo'].'</wsa:To>
+                </soap:Header>
+                <soap:Body>
+                    '.$pipeValues_data.'
+                </soap:Body>
+                </soap:Envelope>';
+                $res = $this->soapCall($envBseMFOrderJson['bserMforderTo'], $body, $headers);
+                $data = $this->soapOrderEntryParamResToArr($res, $envBseMFOrderJson['bserMforderNameSpace']);
+                $orderStatus = explode('|', $data[0]);
+                if(Arr::last($orderStatus) == "0") {
+                    Mf_order::where('pk_order_id', $order_db_status->pk_order_id)->update([
+                        'bse_remarks' => $orderStatus,
+                        'order_status' => "SUCCESS"
+                    ]);
+                    $responseObj['status'] = "SUCCESS";
+                    $responseObj['message'] = $orderStatus[count($orderStatus)-2];
+                } else {
+                    Mf_order::where('pk_order_id', $order_db_status->pk_order_id)->update([
+                        'bse_remarks' => $orderStatus,
+                        'order_status' => "FAILURE"
+                    ]);
+                    $responseObj['status'] = "FAILURE";
+                    $responseObj['message'] = $orderStatus[count($orderStatus)-2];
+                }
+            }
+            catch ( \Exception $e) {
+                $responseObj['status'] = "FAILURE";
+                $responseObj['message'] = $e->getMessage();
+                return $responseObj;
+            }
+            return $responseObj;
+        }
+    }
+
+    public function purchaseSip(Request $request) {
+        $envBSEDataJson = $this->getEnvData();
+        $user = auth('userapi')->user();
+        return $user;
+        // if($user) {
+        //     // Create order for Lumpsum and SIP
+        //     while (list($key,$val) = each($userId)) {
+        //         // create unqiue id
+        //         $unique_id = time();
+        //         $unique_id = $unique_id.sprintf('%06d', $val['mf_cart_id']);
+        //         //create reference id
+        //         $ref_no    = date("Ymd")."1".$this->CONFIG->loggedUserId.sprintf('%06d', $val['mf_cart_id']);
+        //         if($val['p_method'] == 1) { // Lumpsum
+        //             $para_val = $this->lumpsum($val,$unique_id,$ref_no);
+        //             $order_id = $this->bseSync->placeOrderBSE($para_val,$val['mf_cart_id']);
+        //             $pos = strpos($order_id, "FAILED");
+        //             if($pos > 0) {
+        //                 return $order_id;
+        //             } else {
+        //                 $this->db->db_run_query("Update mf_cart_sys set  pipe_val='".$para_val."', bse_order_id='".$order_id."' where mf_cart_id='".$val['mf_cart_id']."'");
+        //             }
+        //         }
+        //         elseif($val['p_method'] == 2) { // SIP
+        //             $para_val = $this->sip($val,$unique_id,$ref_no);
+        //             $order_id = $this->bseSync->placeSIPOrderBSE($para_val,$val['mf_cart_id']);
+        //             $pos = strpos($order_id, "FAILED");
+        //             if($pos > 0) {
+        //                 return $order_id;
+        //             } else {
+        //                 $this->db->db_run_query("Update mf_cart_sys set pipe_val='".$para_val."', bse_order_id='".$order_id."' where mf_cart_id='".$val[mf_cart_id]."'");
+        //             }
+        //         }
+        //         $bse_user_id = $val['bse_id'];
+        //     }
+        //     $p_link_para = $this->p_link_p($bse_user_id);
+        //     $p_link = $this->bseSync->getPLink($p_link_para);
+        //     $link = 'http'.$p_link;
+        //     return $link;
+        // }
+    }
+
     public function soapPswdResToArr($res, $name_space) {
         $xmlObject = simplexml_load_string($res);
         $xmlObject->registerXPathNamespace('ns1', $name_space);
         $getPswd = $xmlObject->xpath('//ns1:getPasswordResponse/ns1:getPasswordResult');
+        return $getPswd;
+    }
+
+    public function soapOrderEntryParamResToArr($res, $name_space) {
+        $xmlObject = simplexml_load_string($res);
+        $xmlObject->registerXPathNamespace('ns1', $name_space);
+        $getPswd = $xmlObject->xpath('//ns1:orderEntryParamResponse/ns1:orderEntryParamResult');
         return $getPswd;
     }
 
@@ -579,6 +658,130 @@ class BSEController extends Controller
         }
     }
 
+    public function bseGenPasswordForUpload($soapFileUploadAction, $soapFileUploadTo, $soapXmlnsTem, $soapXmlnsStar, $bseUserId, $bseMemberID, $bsePassword) {
+        try {
+            $headers = [
+                'Content-Type' => 'application/soap+xml; charset=utf-8',
+                'SOAPAction' => $soapFileUploadAction,
+                'To' => $soapFileUploadTo
+            ];
+            $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:tem="'.$soapXmlnsTem.'" xmlns:star="'.$soapXmlnsStar.'">
+                 <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                    <wsa:Action>'.$soapFileUploadAction.'</wsa:Action>
+                    <wsa:To>'.$soapFileUploadTo.'</wsa:To>
+                </soap:Header>
+                <soap:Body>
+                    <tem:GetPassword>
+                       <tem:Param>
+                          <star:MemberId>'.$bseMemberID.'</star:MemberId>
+                          <star:Password>'.$bsePassword.'</star:Password>
+                          <star:UserId>'.$bseUserId.'</star:UserId>
+                       </tem:Param>
+                    </tem:GetPassword>
+                 </soap:Body>
+            </soap:Envelope>';
+            $res = $this->soapCall($soapFileUploadTo, $body, $headers);
+            $xmlObject = simplexml_load_string($res);
+            $xmlObject->registerXPathNamespace('b', $soapXmlnsStar);
+            $status = $xmlObject->xpath('//b:Status')[0];
+            if($status == 100) {
+                $getPswd = $xmlObject->xpath('//b:ResponseString');
+                return $getPswd[0];
+            } else {
+                return NULL;
+            }
+        }
+        catch ( \Exception $e) {
+            return $e;
+        }
+    }
+
+    public function bseGenPasswordForOrder($actionUrl, $toUrl, $name_space, $bseAuthData) {
+        try {
+            $headers = [
+                'Content-Type' => 'application/soap+xml; charset=utf-8',
+                'SOAPAction' => $actionUrl,
+                'To' => $toUrl
+            ];
+            $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="'.$name_space.'">
+                <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                    <wsa:Action>'.$actionUrl.'</wsa:Action>
+                    <wsa:To>'.$toUrl.'</wsa:To>
+                </soap:Header>
+                <soap:Body>
+                    <ns:getPassword>
+                        <ns:UserId>'.$bseAuthData['bseUserId'].'</ns:UserId>
+                        <ns:MemberId>'.$bseAuthData['bseMemberId'].'</ns:MemberId>
+                        <ns:Password>'.$bseAuthData['bsePassword'].'</ns:Password>
+                        <ns:PassKey>'.$bseAuthData['bsePassKey'].'</ns:PassKey>
+                    </ns:getPassword>
+                </soap:Body>
+                </soap:Envelope>';
+            $res = $this->soapCall($toUrl, $body, $headers);
+            $data = $this->soapPswdResToArr($res, $name_space);
+            $bseGenPassword = explode('|', $data[0]);
+            if($bseGenPassword == 100) {
+                return $bseGenPassword[1];
+            } else {
+                return $bseGenPassword[1];
+            }
+        }
+        catch ( \Exception $e) {
+            return $e->getMessage();
+        }
+    }
+
+    public function getBseAuthData() {
+        if(env("app_status") == "test") {
+            $envBSEData['bseMemberId'] = explode(',', env('MEMBERID'))[0];
+            $envBSEData['bseUserId'] = explode(',', env('USERID'))[0];
+            $envBSEData['bsePassword'] = explode(',', env('PASSWORD'))[0];
+            $envBSEData['bsePassKey'] = explode(',', env('PASSKEY'))[0];
+        } else {
+            if(env("app_status") == "live") {
+                $envBSEData['bseMemberID'] = explode(',', env('MEMBERID'))[1];
+                $envBSEData['bseUserId'] = explode(',', env('USERID'))[1];
+                $envBSEData['bsePassword'] = explode(',', env('PASSWORD'))[1];
+                $envBSEData['bsePassKey'] = explode(',', env('PASSKEY'))[1];
+            }
+        }
+        return $envBSEData;
+    }
+
+    public function getFatcaData() {
+        if(env("app_status") == "test") {
+            $envBSEData['soapPswdUrl'] = explode(',', env('SOAP_PSWD_ACTION'))[0];
+            $envBSEData['svcUploadUrl'] = explode(',', env('SVC_UPLOAD_URL'))[0];
+            $envBSEData['name_space'] = explode(',', env('NAME_SPACE'))[0];
+            $envBSEData['soapFatcaUrl'] = explode(',', env('SOAP_FATCA_ACTION'))[0];            
+        } else {
+            if(env("app_status") == "live") {
+                $envBSEData['svcUploadUrl'] = explode(',', env('SVC_UPLOAD_URL'))[1];
+                $envBSEData['soapPswdUrl'] = explode(',', env('SOAP_PSWD_ACTION'))[1];
+                $envBSEData['name_space'] = explode(',', env('NAME_SPACE'))[1];
+                $envBSEData['soapFatcaUrl'] = explode(',', env('SOAP_FATCA_ACTION'))[1];
+            }
+        }
+        return $envBSEData;
+    }
+
+    public function getUCCData() {
+        if(env("app_status") == "test") {
+            $envBSEData['soapPswdUrl'] = explode(',', env('SOAP_PSWD_ACTION'))[0];
+            $envBSEData['svcUploadUrl'] = explode(',', env('SVC_UPLOAD_URL'))[0];
+            $envBSEData['name_space'] = explode(',', env('NAME_SPACE'))[0];
+            $envBSEData['ucc_reg'] = explode(',', env('UCC_REG'))[0];            
+        } else {
+            if(env("app_status") == "live") {
+                $envBSEData['svcUploadUrl'] = explode(',', env('SVC_UPLOAD_URL'))[1];
+                $envBSEData['soapPswdUrl'] = explode(',', env('SOAP_PSWD_ACTION'))[1];
+                $envBSEData['name_space'] = explode(',', env('NAME_SPACE'))[1];
+                $envBSEData['ucc_reg'] = explode(',', env('UCC_REG'))[1];
+            }
+        }
+        return $envBSEData;
+    }
+
     public function getEnvData() {
         if(env("app_status") == "test") {
             $envBSEData['bseMemberID'] = explode(',', env('MEMBERID'))[0];
@@ -590,6 +793,10 @@ class BSEController extends Controller
             $envBSEData['soapPswdUrl'] = explode(',', env('SOAP_PSWD_ACTION'))[0];
             $envBSEData['name_space'] = explode(',', env('NAME_SPACE'))[0];
             $envBSEData['soapFatcaUrl'] = explode(',', env('SOAP_FATCA_ACTION'))[0];
+            $envBSEData['svcUploadFileUrl'] = explode(',', env('SVC_UPLOADFILE_URL'))[0];
+            $envBSEData['soapPswdUploadUrl'] = explode(',', env('SOAP_PSWD_UPLOAD_ACTION'))[0];
+            $envBSEData['soapUploadFileUrl'] = explode(',', env('SOAP_UPLOAD_FILE_ACTION'))[0];
+            
         } else {
             if(env("app_status") == "live") {
                 $envBSEData['bseMemberID'] = explode(',', env('MEMBERID'))[1];
@@ -600,9 +807,160 @@ class BSEController extends Controller
                 $envBSEData['svcUploadUrl'] = explode(',', env('SVC_UPLOAD_URL'))[1];
                 $envBSEData['soapPswdUrl'] = explode(',', env('SOAP_PSWD_ACTION'))[1];
                 $envBSEData['name_space'] = explode(',', env('NAME_SPACE'))[1];
-                $envBSEData['soapFatcaUrl'] = explode(',', env('SOAP_FATCA_ACTION'))[2];
+                $envBSEData['soapFatcaUrl'] = explode(',', env('SOAP_FATCA_ACTION'))[1];
+                $envBSEData['svcUploadFileUrl'] = explode(',', env('SVC_UPLOADFILE_URL'))[1];
+                $envBSEData['soapPswdUploadUrl'] = explode(',', env('SOAP_PSWD_UPLOAD_ACTION'))[1];
+                $envBSEData['soapUploadFileUrl'] = explode(',', env('SOAP_UPLOAD_FILE_ACTION'))[1];
             }
         }
         return $envBSEData;
     }
+
+    public function getBseAOFUploadData() {
+        if(env("app_status") == "test") {
+            $envBSEData['soapFileUploadGetPswdAction'] = explode(',', env('SOAP_FILE_UPLOAD_GET_PSWD_ACTION'))[0];
+            $envBSEData['soapFileUploadGetPswdTo'] = explode(',', env('SOAP_FILE_UPLOAD_GET_PSWD_TO'))[0];
+            $envBSEData['soapXmlnsTem'] = explode(',', env('SOAP_XMLNS_TEM'))[0];
+            $envBSEData['soapXmlnsStar'] = explode(',', env('SOAP_XMLNS_STAR'))[0];
+            $envBSEData['soapFileUploadAction'] = explode(',', env('SOAP_FILE_UPLOAD_ACTION'))[0];
+        } else {
+            if(env("app_status") == "live") {
+                $envBSEData['soapFileUploadAction'] = explode(',', env('SOAP_FILE_UPLOAD_GET_PSWD_ACTION'))[1];
+                $envBSEData['soapFileUploadTo'] = explode(',', env('SOAP_FILE_UPLOAD_GET_PSWD_TO'))[1];
+                $envBSEData['soapXmlnsTem'] = explode(',', env('SOAP_XMLNS_TEM'))[1];
+                $envBSEData['soapXmlnsStar'] = explode(',', env('SOAP_XMLNS_STAR'))[1];
+                $envBSEData['soapFileUploadAction'] = explode(',', env('SOAP_FILE_UPLOAD_ACTION'))[1];
+
+            }
+        }
+        return $envBSEData;
+    }
+
+    public function getBseOrderEnvData() {
+        if(env("app_status") == "test") {
+            $envBSEData['bseMforderUrl'] = explode(',', env('BSE_MFORDER_URL'))[0];
+            $envBSEData['bseMforderGetPswdAction'] = explode(',', env('BSE_MFORDER_GETPSWD_ACTION'))[0];
+            $envBSEData['bserMforderTo'] = explode(',', env('BSE_MFORDER_TO'))[0];
+            $envBSEData['bserMforderNameSpace'] = explode(',', env('BSE_MFORDER_NAMESPACE'))[0];
+            $envBSEData['bserMforderNSFor'] = explode(',', env('BSE_MFORDER_NS_MFOR'))[0];
+            $envBSEData['bserMforderOrderEntryAction'] = explode(',', env('BSE_MFORDER_ORDERENTRY_ACTION'))[0];
+            
+        } else {
+            if(env("app_status") == "live") {
+                $envBSEData['bseMforderUrl'] = explode(',', env('BSE_MFORDER_URL'))[1];
+                $envBSEData['bseMforderGetPswdAction'] = explode(',', env('BSE_MFORDER_GETPSWD_ACTION'))[1];
+                $envBSEData['bserMforderTo'] = explode(',', env('BSE_MFORDER_TO'))[1];
+                $envBSEData['bserMforderNameSpace'] = explode(',', env('BSE_MFORDER_NAMESPACE'))[1];
+                $envBSEData['bserMforderNSFor'] = explode(',', env('BSE_MFORDER_NS_MFOR'))[1];
+                $envBSEData['bserMforderOrderEntryAction'] = explode(',', env('BSE_MFORDER_ORDERENTRY_ACTION'))[1];
+            }
+        }
+        return $envBSEData;
+    }
+
+    public function getStarMFWebServiceEnvData() {
+        if(env("app_status") == "test") {
+            $envBSEData['starMFWebServiceNameSpace'] = explode(',', env('STAR_MF_WEB_SERVICE_NAMESPACE'))[0];
+            $envBSEData['starMFWebServiceTo'] = explode(',', env('STAR_MF_WEB_SERVICE_TO'))[0];
+            $envBSEData['starMFWebServiceGetPswdAction'] = explode(',', env('STAR_MF_WEB_SERVICE_GETPSWD_ACTION'))[0];
+        } else {
+            if(env("app_status") == "live") {
+                $envBSEData['starMFWebServiceNameSpace'] = explode(',', env('STAR_MF_WEB_SERVICE_NAMESPACE'))[1];
+                $envBSEData['starMFWebServiceTo'] = explode(',', env('STAR_MF_WEB_SERVICE_TO'))[1];
+                $envBSEData['starMFWebServiceGetPswdAction'] = explode(',', env('STAR_MF_WEB_SERVICE_GETPSWD_ACTION'))[1];
+            }
+        }
+        return $envBSEData;
+    }
+
+    public function mandateRegistration($accountNo, $accType, $ifsc, $bse_id, $user_id, $bankid) {
+        $bseAuthData = $this->getBseAuthData();
+        $envBSEFatcaDataJson = $this->getFatcaData();
+        if($bse_id != null) {
+            $userAuthController = new UserAuthController();
+            $userData = $userAuthController->getUserDetails($user_id);
+            $date = date('Y-m-d');
+            $date1 = \Carbon\Carbon::createFromFormat('Y-m-d', $date)->format('d/m/Y');
+            $date2 = \Carbon\Carbon::createFromFormat('Y-m-d', $date)->addYears(100)->format('d/m/Y');
+            $transBSEArr = array(
+                "CLIENT CODE" => $bse_id,
+                "AMOUNT" => 100000,
+                "Mandate Type" => "N",
+                "ACCOUNT NO" => $accountNo,
+                "A/C TYPE" => $accType,
+                "IFSC CODE" => $ifsc,
+                "MICR CODE" => "",
+                "START DATE" => $date1,
+                "END DATE" => $date2
+            );
+            $pipeValues = implode("|",$transBSEArr);
+            $bseGenPassword = $this->bseGenPassword($envBSEFatcaDataJson['soapPswdUrl'], $envBSEFatcaDataJson['svcUploadUrl'], $envBSEFatcaDataJson['name_space'], $bseAuthData['bseUserId'], $bseAuthData['bseMemberId'], $bseAuthData['bsePassword']);
+            try {
+                $headers = [
+                    'Content-Type' => 'application/soap+xml; charset=utf-8',
+                    'SOAPAction' => $envBSEFatcaDataJson['soapFatcaUrl'],
+                    'To' => $envBSEFatcaDataJson['svcUploadUrl']
+                ];
+                $body = '<soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope" xmlns:ns="'.$envBSEFatcaDataJson['name_space'].'">
+                <soap:Header xmlns:wsa="http://www.w3.org/2005/08/addressing">
+                    <wsa:Action>'.$envBSEFatcaDataJson['soapFatcaUrl'].'</wsa:Action>
+                    <wsa:To>'.$envBSEFatcaDataJson['svcUploadUrl'].'</wsa:To>
+                </soap:Header>
+                <soap:Body>
+                    <ns:MFAPI>
+                        <ns:Flag>06</ns:Flag>
+                        <ns:UserId>'.$bseAuthData['bseUserId'].'</ns:UserId>
+                        <ns:EncryptedPassword>'.$bseGenPassword.'</ns:EncryptedPassword>
+                        <ns:param>'.$pipeValues.'</ns:param>
+                    </ns:MFAPI>
+                </soap:Body>
+                </soap:Envelope>';
+                $res = $this->soapCall($envBSEFatcaDataJson['svcUploadUrl'], $body, $headers);
+                $data = $this->soapFatcaResToArr($res, $envBSEFatcaDataJson['name_space']);
+                $bseMandateStatus = explode('|', $data[0]);
+                if($bseMandateStatus[0] == "100") {
+                    Bfsi_bank_details::where('pk_bank_detail_id', $bankid)->update([
+                        'mandateInput' => $body,
+                        'mandateOutput' => $data,
+                        'mandateStatus' => "SUCCESS",
+                        'mandate_id' => $bseMandateStatus[2],
+                        'mandate_start_dt' => \Carbon\Carbon::createFromFormat('d/m/Y', $date1)->format('Y-m-d'),
+                        'mandate_end_dt' => \Carbon\Carbon::createFromFormat('d/m/Y', $date2)->format('Y-m-d')
+                    ]);
+                    $data = [
+                        "statusCode" => $bseMandateStatus[0],
+                        "message" => $bseMandateStatus[1],
+                        "mandate_id" => $bseMandateStatus[2]
+                    ];
+                } else {
+                    Bfsi_bank_details::where('pk_bank_detail_id', $bankid)->update([
+                        'mandateInput' => $body,
+                        'mandateOutput' => $data,
+                        'mandateStatus' => "FAILURE",
+                        'mandate_start_dt' => \Carbon\Carbon::createFromFormat('d/m/Y', $date1)->format('Y-m-d'),
+                        'mandate_end_dt' => \Carbon\Carbon::createFromFormat('d/m/Y', $date2)->format('Y-m-d')
+                    ]);
+                    $data = [
+                        "statusCode" => $bseMandateStatus[0],
+                        "message" => $bseMandateStatus[1]
+                    ];
+                }
+            }
+            catch ( \Exception $e) {
+                $data = [
+                    "statusCode" => 101,
+                    "message" => $e->getMessage()
+                ];
+            }
+        } else {
+            $data = [
+                "statusCode" => 500,
+                "message" => "BSE User account not found. Contact customer support"
+            ];
+        }
+        return $data;
+    }
+
+
+
 }

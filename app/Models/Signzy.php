@@ -35,6 +35,7 @@ class Signzy extends Model
         'mobileLoginUrl',
         'autoLoginUrL',
         'mobileAutoLoginUrl',
+        'signzy_response'
     ];
 
 }

@@ -12,8 +12,7 @@ use Illuminate\Support\Str;
 
 class NsdlController extends Controller
 {
-    public function getPasscodeEncyrt($pan) {
-
+    public function getPasscodeEncyrt($pan, $mobile) {
         $p_key = date("d").date("y").rand(000000,999999);
         $request_id = date("Y").rand(000000,999999);
         $url = "http://kra.ndml.in:80/sms-ws/PANServiceImplService";
@@ -25,27 +24,24 @@ class NsdlController extends Controller
         $xml = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ser=\"http://service.webservice.pan.kra.ndml.com/\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <ser:getPasscode>\r\n         <!--Optional:-->\r\n         <arg0>NDML@1234</arg0>\r\n         <!--Optional:-->\r\n         <arg1>1022565410</arg1>\r\n      </ser:getPasscode>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>";
         
 		$context = stream_context_create([
-									'ssl' => [
-										// set some SSL/TLS specific options
-										'verify_peer' => false,
-										'verify_peer_name' => true,
-										'allow_self_signed' => true
-									]
-								]);
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => true,
+				'allow_self_signed' => true
+			]
+		]);
 		$options = array(
-					'uri'=>'http://schemas.xmlsoap.org/soap/envelope/',
-					'style'=>'SOAP_RPC',
-					'use'=>'SOAP_ENCODED',
-					'soap_version'=>'SOAP_1_1',
-					'cache_wsdl'=>'WSDL_CACHE_NONE',
-					'connection_timeout'=>15,
-					'trace'=>true,
-					'encoding'=>'UTF-8',
-					'exceptions'=>true,
-					'stream_context' => $context
-				);  
-		// echo $userId."--".$mobile."--".$password."--".$chk_PAN;
-		// die();
+			'uri'=>'http://schemas.xmlsoap.org/soap/envelope/',
+			'style'=>'SOAP_RPC',
+			'use'=>'SOAP_ENCODED',
+			'soap_version'=>'SOAP_1_1',
+			'cache_wsdl'=>'WSDL_CACHE_NONE',
+			'connection_timeout'=>15,
+			'trace'=>true,
+			'encoding'=>'UTF-8',
+			'exceptions'=>true,
+			'stream_context' => $context
+		);
 		$soap = new SoapClient($wsdl, $options); 
         try {
 			$passKey = $p_key;
@@ -64,22 +60,132 @@ class NsdlController extends Controller
 			$data = $soap->panInquiryDetails($params)->return;
 			$temp_data = (new GeneralController)->xmlToArray($data)['APP_PAN_INQ'];
 			if(array_key_exists('ERROR', $temp_data)) {
-				$val['status'] = "FAILURE";
-				$val['msg'] = $temp_data['ERROR']." Lets Complete Your KYC to Start Investing";	
-				$val['data'] = $temp_data;
-				$val['request'] = $xml_request;
-				$val['kycStatus'] = 404;
+				$userData = Bfsi_users_detail::where('fr_user_id', $id)->update([
+					'nsdl_kyc_status' => "NOTKYC",
+					'nsdl_kyc_res' => $temp_data
+				]);
+				$val = [
+					'status' => "FAILURE",
+					'msg' => $temp_data['ERROR']." Lets Complete Your KYC to Start Investing",
+					'data' => $temp_data,
+					'request' => $xml_request,
+					'kycStatus' => 404
+				];
 			} else {
 				if (Str::contains($temp_data['APP_STATUS'], "Not Available")) {
-					$val['status'] = "SUCCESS";
-					$val['msg'] = "Lets Complete Your KYC to Start Investing";	
-					$val['data'] = $temp_data;
-					$val['kycStatus'] = 404;
+					$userData = Bfsi_users_detail::where('fr_user_id', $id)->update([
+						'nsdl_kyc_status' => "NOTKYC",
+						'nsdl_kyc_res' => $temp_data
+					]);
+					$val = [
+						'status' => "SUCCESS",
+						'msg' => "Lets Complete Your KYC to Start Investing",
+						'data' => $temp_data,
+						'kycStatus' => 404
+					];
 				} else {
-					$val['status'] = "SUCCESS";
-					$val['msg'] =  "Great !! You are Investment ready ! Lets Start";	
-					$val['data'] = $temp_data;
-					$val['kycStatus'] = 201;
+					$userData = Bfsi_users_detail::where('fr_user_id', $id)->update([
+						'nsdl_kyc_status' => "KYC",
+						'nsdl_kyc_res' => $temp_data
+					]);
+					$val = [
+						'status' => "SUCCESS",
+						'msg' => "Great !! You are Investment ready ! Lets Start",
+						'data' => $temp_data,
+						'kycStatus' => 201
+					];
+				}
+			}
+        }
+        catch(Exception $e) {
+            print_r("@@@@@@@@@@      Exception occured :->      ".$e->getMessage()."\r\n");
+            die ($e->getTraceAsString());
+        }
+        return json_encode($val);
+    }
+
+	public function getKYCStatusCheck($pan, $mobile) {
+        $p_key = date("d").date("y").rand(000000,999999);
+        $request_id = date("Y").rand(000000,999999);
+        $url = "http://kra.ndml.in:80/sms-ws/PANServiceImplService";
+        $wsdl = 'https://kra.ndml.in/sms-ws/PANServiceImplService/PANServiceImplService.wsdl';
+        $userId   = env('NSDL_USERId');
+		$mobile   = env('NSDL_MOBILE');
+		$password = env('NSDL_PASSWORD');
+
+        $xml = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:ser=\"http://service.webservice.pan.kra.ndml.com/\">\r\n   <soapenv:Header/>\r\n   <soapenv:Body>\r\n      <ser:getPasscode>\r\n         <!--Optional:-->\r\n         <arg0>NDML@1234</arg0>\r\n         <!--Optional:-->\r\n         <arg1>1022565410</arg1>\r\n      </ser:getPasscode>\r\n   </soapenv:Body>\r\n</soapenv:Envelope>";
+        
+		$context = stream_context_create([
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => true,
+				'allow_self_signed' => true
+			]
+		]);
+		$options = array(
+			'uri'=>'http://schemas.xmlsoap.org/soap/envelope/',
+			'style'=>'SOAP_RPC',
+			'use'=>'SOAP_ENCODED',
+			'soap_version'=>'SOAP_1_1',
+			'cache_wsdl'=>'WSDL_CACHE_NONE',
+			'connection_timeout'=>15,
+			'trace'=>true,
+			'encoding'=>'UTF-8',
+			'exceptions'=>true,
+			'stream_context' => $context
+		);
+		$soap = new SoapClient($wsdl, $options); 
+        try {
+			$passKey = $p_key;
+			$passcode_params = array('arg0' => $password, 'arg1' => $passKey);
+			$encPass = $soap->getPasscode($passcode_params);            
+			$encPassword = $encPass->return;
+			$xml_request =  '<APP_REQ_ROOT>
+								<APP_PAN_INQ>
+									<APP_PAN_NO>'.$pan.'</APP_PAN_NO>
+									<APP_MOBILE_NO>'.$mobile.'</APP_MOBILE_NO>
+									<APP_REQ_NO>'.$request_id.'</APP_REQ_NO>
+								</APP_PAN_INQ>
+							</APP_REQ_ROOT>';
+			$params = array('arg0' => $xml_request, 'arg1' => $userId, 'arg2' => $encPassword, 'arg3' => $passKey);
+			
+			$data = $soap->panInquiryDetails($params)->return;
+			$temp_data = (new GeneralController)->xmlToArray($data)['APP_PAN_INQ'];
+			if(array_key_exists('ERROR', $temp_data)) {
+				$userData = Bfsi_users_detail::where('fr_user_id', $id)->update([
+					'nsdl_kyc_status' => "NOTKYC",
+					'nsdl_kyc_res' => $temp_data
+				]);
+				$val = [
+					'status' => "FAILURE",
+					'msg' => $temp_data['ERROR']." Lets Complete Your KYC to Start Investing",
+					'data' => $temp_data,
+					'request' => $xml_request,
+					'kycStatus' => 404
+				];
+			} else {
+				if (Str::contains($temp_data['APP_STATUS'], "Not Available")) {
+					$userData = Bfsi_users_detail::where('fr_user_id', $id)->update([
+						'nsdl_kyc_status' => "NOTKYC",
+						'nsdl_kyc_res' => $temp_data
+					]);
+					$val = [
+						'status' => "SUCCESS",
+						'msg' => "Lets Complete Your KYC to Start Investing",
+						'data' => $temp_data,
+						'kycStatus' => 404
+					];
+				} else {
+					$userData = Bfsi_users_detail::where('fr_user_id', $id)->update([
+						'nsdl_kyc_status' => "KYC",
+						'nsdl_kyc_res' => $temp_data
+					]);
+					$val = [
+						'status' => "SUCCESS",
+						'msg' => "Great !! You are Investment ready ! Lets Start",
+						'data' => $temp_data,
+						'kycStatus' => 201
+					];
 				}
 			}
         }
@@ -88,7 +194,6 @@ class NsdlController extends Controller
             die ($e->getTraceAsString());
         }
         return $val;
-
     }
 
     public function getPanDetails($pan) {
@@ -122,9 +227,7 @@ class NsdlController extends Controller
 					'encoding'=>'UTF-8',
 					'exceptions'=>true,
 					'stream_context' => $context
-				);  
-		// echo $userId."--".$mobile."--".$password."--".$chk_PAN;
-		// die();
+				);
 		$soap = new SoapClient($wsdl, $options); 
         try {
 			$passKey = $p_key;

@@ -47,7 +47,8 @@ class UserAuthController extends Controller
                 ]);
                 $userStatus = Bfsi_users_detail::create([
                     'fr_user_id' => $uid,
-                    'cust_name' => $data['fname']
+                    'cust_name' => $data['fname'],
+                    'contact_no' => $data['contact_no']
                 ]);
                 if($uid>0){
                     $response = [
@@ -198,7 +199,7 @@ class UserAuthController extends Controller
           'user_status' => "Active",
           'signup_ip' => getenv('REMOTE_ADDR'),
           'signup_date' => \Carbon\Carbon::now()->timestamp,
-          'contact' => $data['contact'],
+          'contact' => $data['contact_no'],
           'steps' => '2',
           'created_from' => $source
         ]);
@@ -211,7 +212,7 @@ class UserAuthController extends Controller
             'user_status' => "Active",
             'signup_ip' => getenv('REMOTE_ADDR'),
             'signup_date' => \Carbon\Carbon::now()->timestamp,
-            'contact' => "",
+            'contact' => $data['contact_no'],
             'steps' => '2',
             'created_from' => $source,
             'password' => md5($data['password']),
@@ -585,14 +586,22 @@ class UserAuthController extends Controller
     public function userProfile() {
         $id = auth('userapi')->user()->pk_user_id;
         $userData = Bfsi_users_detail::where(['fr_user_id' => $id])->get()->first();
-        $path = public_path('uploads').'/users/'.$id.'/profile/'.$userData->signature;
-        $base64 = "data:image/png;base64,".base64_encode(file_get_contents($path));
-        $data = [
-            "statusCode" => 201,
-            "userdata" => auth('userapi')->user(),
-            "profileDate" => $userData,
-            "path" => $base64
-        ];
+        if($userData->signature != null) {
+            $path = public_path('uploads').'/users/'.$id.'/profile/'.$userData->signature;
+            $base64 = "data:image/png;base64,".base64_encode(file_get_contents($path));
+            $data = [
+                "statusCode" => 201,
+                "userdata" => auth('userapi')->user(),
+                "profileDate" => $userData,
+                "path" => $base64
+            ];
+        } else {
+            $data = [
+                "statusCode" => 201,
+                "userdata" => auth('userapi')->user(),
+                "profileDate" => $userData,
+            ];
+        }
         return response()->json($data);
     }
 
@@ -729,6 +738,7 @@ class UserAuthController extends Controller
                 'email' => $request->login_id,
                 'nominee_dob' => $request->nominee_dob,
                 'nominee_name' => $request->nominee_name,
+                'nominee_guardian_name' => $request->nominee_guardian_name,
                 'pan_number' => $request->pan_number,
                 'pincode' => $request->pincode,
                 'r_of_nominee_w_app' => $request->r_of_nominee_w_app,
@@ -745,7 +755,8 @@ class UserAuthController extends Controller
             if($upstatus) {
                 $data = [
                     "statusCode" => 201,
-                    "data" => $upstatus
+                    "data" => $upstatus,
+                    "message" => "User Details Updated"
                 ];
             } else {
                 $data = [

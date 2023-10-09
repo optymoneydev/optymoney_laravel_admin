@@ -13,6 +13,7 @@
         "gussrw/laravel-routes": "^1.1",
         "guzzlehttp/guzzle": "^7.2",
         "hisamu/php-xbase": "^2.1",
+        "intervention/image": "^2.7",
         "laravel/framework": "^9.19",
         "laravel/helpers": "^1.5",
         "laravel/passport": "^11.3",
@@ -20,6 +21,7 @@
         "laravel/tinker": "^2.7",
         "laravel/ui": "^4.1",
         "league/csv": "^9.0",
+        "spatie/array-to-xml": "^3.1",
         "symfony/psr-http-message-bridge": "^2.1",
         "tymon/jwt-auth": "^2.0",
         "webklex/laravel-imap": "^4.0",
@@ -27,6 +29,7 @@
         "yajra/laravel-datatables-oracle": "^10.2"
     },
     "require-dev": {
+        "andyabih/laravel-to-uml": "^1.0",
         "fakerphp/faker": "^1.9.1",
         "ixudra/curl": "^6.22",
         "laravel/pint": "^1.0",

@@ -23,6 +23,7 @@ use App\Http\Controllers\cms\BlogsController;
 use App\Http\Controllers\marketing\EventController;
 use App\Http\Controllers\Nsdl\SignzyController;
 use App\Http\Controllers\mf\BSEController;
+use App\Http\Controllers\mf\StarMFFileUploadServiceController;
 use App\Mail\OptyEmail;
 /*
 |--------------------------------------------------------------------------
@@ -90,10 +91,8 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
             
             Route::get('createFatcaTest', [BSEController::class, 'createFatcaTest'])->name('createFatcaTest'); 
             Route::post('createBSE', [BSEController::class, 'createBSE'])->name('createBSE'); 
+            Route::get('updateBSE', [BSEController::class, 'updateBSE'])->name('updateBSE'); 
 
-            
-            
-            
         });
     });
 
@@ -146,9 +145,13 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
             Route::get('/getPortfolioByUserAPI/{pan}', [MFController::class, 'getPortfolioByUserAPI']); 
             Route::get('/ucc_check', [MFUserController::class, 'ucc_check']); 
             Route::get('/mandateCheck', [MFUserController::class, 'mandateCheck']); 
+            Route::post('purchaseLumpsum', [BSEController::class, 'purchaseLumpsum'])->name('purchaseLumpsum'); 
+            Route::post('purchaseSip', [BSEController::class, 'purchaseSip'])->name('purchaseSip'); 
+
+            Route::post('uploadMandateScanFile', [StarMFFileUploadServiceController::class, 'uploadMandateScanFile'])->name('uploadMandateScanFile'); 
         });
 
-        Route::post('getTransactionsById', [MFController::class, 'getTransactionsById'])->name('getTransactionsById');
+        Route::post('getSchemeTransactionsById', [MFController::class, 'getSchemeTransactionsById'])->name('getSchemeTransactionsById');
     });
 
     // Route::post('/login', [UserAuthController::class, 'login']);
@@ -189,6 +192,10 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
 });
 Route::prefix('itr')->group(function () {  
     Route::post('/itrRegistration', [ITRController::class, 'itrRegistrationAPI']);
+});
+
+Route::prefix('redirects')->group(function () {  
+    Route::get('fromsignzy', [SignzyController::class, 'fromsignzy'])->name('fromsignzy'); 
 });
 
 Route::prefix('mf')->group(function () {  
@@ -269,6 +276,8 @@ Route::prefix('users')->group(function () {
 });
 
 Route::get('getfile/{uid}/{filename}', [GeneralController::class, 'getfile'])->name('getfile');
+
+Route::get('getDoc/{filename}', [GeneralController::class, 'getDoc'])->name('getDoc');
 
 Route::get('/clear-cache', function() {
     Artisan::call('cache:clear');

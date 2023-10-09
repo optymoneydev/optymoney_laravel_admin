@@ -95,6 +95,13 @@ class GeneralController extends Controller
         return (new Response($file, 200))->header('Content-Type', $this->getFileExtensions($extension));
     }
 
+    public function getDoc(Request $request) {
+        $file = Storage::disk('public_uploads_files')->get($request->uid.'/'.$request->filename);
+        $extension = pathinfo($request->filename, PATHINFO_EXTENSION);
+        // return $this->getFileExtensions($extension);
+        return (new Response($file, 200))->header('Content-Type', $this->getFileExtensions($extension));
+    }
+
     public function getFileExtensions($ext) {
         if($ext=="pdf") {
             return "application/pdf";
@@ -108,10 +115,46 @@ class GeneralController extends Controller
                     if($ext=="jpeg" || $ext=="jpg") {
                         return "image/jpeg";
                     } else {
-                        return "";
+                        if($ext == "pptx") {
+                            return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                        } else {
+                            return "";
+                        }
                     }   
                 }
             }
         }
+    }
+
+    public function getIp($request){
+        foreach (array('HTTP_CLIENT_IP', 'HTTP_X_FORWARDED_FOR', 'HTTP_X_FORWARDED', 'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED_FOR', 'HTTP_FORWARDED', 'REMOTE_ADDR') as $key){
+            if (array_key_exists($key, $_SERVER) === true){
+                foreach (explode(',', $_SERVER[$key]) as $ip){
+                    $ip = trim($ip); // just to be safe
+                    if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false){
+                        return $ip;
+                    }
+                }
+            }
+        }
+        return request()->ip(); // it will return the server IP if the client IP is not found using this method.
+    }
+
+    public function dateFormatConversion($date) {
+        return \Carbon\Carbon::createFromFormat('Y-m-d', $date)->format('d/m/Y');
+    }
+
+    public function getAge($date) {
+        $years = \Carbon\Carbon::parse($date)->age;
+        return $years;
+    }
+
+    public function getMinorFlag($date) {
+        $years = \Carbon\Carbon::parse($date)->age;
+        if($years > 18) {
+			return "N";
+		} else {
+			return "Y";
+		}
     }
 }

@@ -113,11 +113,11 @@ class RazorpayController extends Controller
     }
 
     public function getSpecificPayment($rpi) {
-        $api = $this->createAPI();
         try {
+            $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
             $rpiData = $api->payment->fetch($rpi);
-            $res = $this->saveRazorpayResponse($rpiData);
-            return response()->json($res);
+            // $res = $this->saveRazorpayResponse($rpiData);
+            return response()->json($rpiData->status);
         } catch (Exception $e) {
             return  $e->getMessage();
         }
@@ -166,8 +166,9 @@ class RazorpayController extends Controller
         $rpr->error_code = $response->error_code;
         $rpr->error_description = $response->error_description;
         if($response->acquirer_data) {
-            $rpr->acquirer_auth_code = $response->acquirer_data->auth_code;
-            $rpr->acquirer_arn = $response->acquirer_data->arn;
+            $rpr->acquirer_auth_code = isset($response->acquirer_data->auth_code) ? $response->acquirer_data->auth_code : null;
+            $rpr->acquirer_arn = isset($response->acquirer_data->arn) ? $response->acquirer_data->arn : null;
+            $rpr->bank_transaction_id = isset($response->acquirer_data->bank_transaction_id) ? $response->acquirer_data->bank_transaction_id : null;
             $rpr->acquirer_authentication_reference_number = isset($response->acquirer_data->authentication_reference_number)?$response->acquirer_data->authentication_reference_number:null;
         }
         $rprstat = $rpr->save();

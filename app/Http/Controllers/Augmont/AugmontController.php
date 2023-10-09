@@ -160,6 +160,31 @@ class AugmontController extends Controller
         if ($availCount === null) {
             $availCount = array('goldBalance' => 0, 'silverBalance' => 0);
         }
+        $availSilverSell = AugmontOrders::where(['user_id' => $id])
+            ->where('updated_at', '<=', Carbon::now()->subDays(2)->toDateTimeString())
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'silver')
+            ->sum('quantity');
+        $availGoldSell = AugmontOrders::where(['user_id' => $id])
+            ->where('updated_at', '<=', Carbon::now()->subDays(2)->toDateTimeString())
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'gold')
+            ->sum('quantity');
+        $silverSold = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('transactionId')
+            ->where('metalType', '=', 'silver')
+            ->where('ordertype', '=', 'Sell')
+            ->sum('quantity');
+        $goldSold = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('transactionId')
+            ->where('metalType', '=', 'gold')
+            ->where('ordertype', '=', 'Sell')
+            ->sum('quantity');
+        $availCount['availGoldSell'] = $availGoldSell - $goldSold;;
+        $availCount['availSilverSell'] = $availSilverSell - $silverSold;
+        $availCount['goldBalance'] = $availCount['goldBalance'];
+        $availCount['silverBalance'] = $availCount['silverBalance'];
+        
         return $availCount;
     }
 

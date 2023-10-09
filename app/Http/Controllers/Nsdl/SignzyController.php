@@ -39,11 +39,16 @@ class SignzyController extends Controller
     }
 
 	public function signzyGetURL(Request $request) {
-		$result = (new NsdlController)->getPasscodeEncyrt();
-		if($result->status == "SUCCESS") {
+		$general = new GeneralController();
+		$userAuthController = new UserAuthController();
+		$user = auth('userapi')->user();
+		$userData = $userAuthController->getUserDetails($user->pk_user_id);
+		$result = (new NsdlController)->getKYCStatusCheck($userData->pan_number, $userData->contact_no);
+		
+		if($result['status'] != "SUCCESS") {
 			$data = [
 				'status_code' => 210,
-				'message' => $result->msg
+				'message' => $result['msg']
 			];
 		} else {
 			$signzy_username = "";
@@ -60,9 +65,8 @@ class SignzyController extends Controller
 					$signzy_url = explode(',', env('SIGNZY_URL'))[1];
 				}
 			}
-			$user = auth('userapi')->user();
 			if($user) {
-				$username = "opty_signzy_".$user->pk_user_id;
+				$username = "test_opty_signzy_".$user->pk_user_id;
 				$signzyCheck = Signzy::where([
 					'user_id' => $user->pk_user_id,
 					'signzy_username' => $username
@@ -82,18 +86,14 @@ class SignzyController extends Controller
 							'signzy' => $signzyCheck
 						];
 					} else {
-						$general = new GeneralController();
-						$userAuthController = new UserAuthController();
-						$userData = $userAuthController->getUserDetails($user->pk_user_id);
-						$username = "opty_signzy_".$user->pk_user_id;
-
+						$username = "test_opty_signzy_".$user->pk_user_id;
 						$postdata = array(
 							"email"=> $user->login_id,
 							"username"=> $username,
 							"phone"=> $userData->contact_no,
-							"name"=> $userData->cust_name
-							// "redirectUrl"=> "url",
-							// "channelEmail"=> "support@optymoney.com"
+							"name"=> $userData->cust_name,
+							"redirectUrl"=> "https://admin.optymoney.com/api/redirects/fromsignzy",
+							"channelEmail"=> "support@optymoney.com"
 						);
 						$client = new Client(['verify' => false ]);
 						try {
@@ -125,10 +125,14 @@ class SignzyController extends Controller
 								'message' => json_encode($signzy->save()),
 								'signzy' => $signzy
 							];
-						}
-						catch (\GuzzleHttp\Exception\RequestException $e) {
+						} catch (\GuzzleHttp\Exception\RequestException $e) {
 							$responseBody = $e->getResponse();
-							return json_decode($responseBody->getBody()->getContents());
+							$resError = json_decode($responseBody->getBody()->getContents())->error->message;
+							$e = json_decode($resError)->error->message;
+							$data = [
+								'status_code' => 422,
+								'message' => $e
+							];
 						}
 					}
 				}
@@ -142,4 +146,10 @@ class SignzyController extends Controller
 		return $data;
     }
 
+	public function fromsignzy(Request $request) {
+		$user = auth('userapi')->user();
+		Signzy::where('fr_user_id', $user->pk_user_id)->update([
+			'signzy_response' => $request
+		]);
+	}
 }
