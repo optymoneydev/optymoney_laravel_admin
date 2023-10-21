@@ -29,6 +29,7 @@ use App\Http\Controllers\cron\CronController;
 use App\Http\Controllers\Empanel\EmpanelController;
 
 use App\Http\Controllers\Augmont\AugmontController;
+use App\Http\Controllers\Augmont\User\UserAugmontController;
 use App\Http\Controllers\Augmont\RatesAugmontController;
 use App\Http\Controllers\Payments\RazorpayController;
 use App\Http\Controllers\Payments\RazorpayWebhookController;
@@ -91,7 +92,11 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         Route::get('empclients', [ClientController::class, 'getEmpClientCard'])->name('empClientCard'); 
 
         Route::post('saveUser', [ClientController::class, 'saveUser'])->name('saveUser');
+
+        Route::view('investInterestCards', 'crm.invest-interest-cards')->name('investInterestCards');
+        Route::get('investmentInterestData', [ClientController::class, 'investmentInterestData'])->name('investmentInterestData'); 
         
+        Route::get('createAugmontAccount/{id}', [UserAugmontController::class, 'createManualAugmontAccount'])->name('createManualAugmontAccount'); 
     });
 
     Route::prefix('itr')->group(function () {
@@ -302,6 +307,7 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         Route::get('emailInvoice/{invoice}', [InvoiceAugmontController::class, 'emailInvoice'])->name('augmont.buyInvoice'); 
 
         Route::post('saveAO', [BuyAugmontController::class, 'manualPostOrder'])->name('saveAO');
+        Route::get('getBuyInfo/{merchantTransactionId}/{uniqueId}', [BuyAugmontController::class, 'getBuyInfo'])->name('getBuyInfo'); 
 
         Route::get('getDayWiseAugOrders/{day}', [AugmontController::class, 'getDayWiseAugOrders'])->name('augmont.getDayWiseAugOrders');
 

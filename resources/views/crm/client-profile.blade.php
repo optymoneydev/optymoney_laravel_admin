@@ -57,8 +57,17 @@
 				<div class="card xl-none">
 					<div class="ecommerce-widget card-body">
 						<div class="row">
-							<div class="col-4 col-sm-4">
+							<div class="col-12 col-sm-12">
 								<h6>Gold Investments</h6>
+							</div>
+						</div>
+						<div class="row">
+							<div class="col-12 col-sm-12">
+								@if($client->augid !='')         
+									<h6 id="augmontIdTitle">Augmont Id : {{ $client->augid }}</h6>
+								@else
+									<a href="#" id="createAugmontAccountLink">Create Account</a>
+								@endif
 							</div>
 						</div>
 						<div class="row">

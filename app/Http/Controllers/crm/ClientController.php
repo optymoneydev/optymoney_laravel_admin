@@ -12,6 +12,7 @@ Use App\Models\Bfsi_user;
 Use App\Models\Bfsi_users_detail;
 Use App\Models\Bfsi_bank_details;
 Use App\Models\Empcust;
+Use App\Models\Invest_Interest;
 use Illuminate\Support\Facades\Hash;
 use View;
 use Session;
@@ -24,6 +25,16 @@ class ClientController extends Controller
               ->get(['bfsi_user.*', 'bfsi_users_details.*'])
               ->sortByDesc("pk_user_id");
         return View::make('crm.client-cards', ['articles' => $clientData]);
+    }
+
+    public function getInvestInterestCards(Request $request) {
+        // $clientData = Invest_Interest::get()->sortByDesc("id");
+        return View::make('crm.invest-interest-cards');
+    }
+
+    public function investmentInterestData(Request $request) {
+        $invInsData = Invest_Interest::get()->sortByDesc("id");
+        return $invInsData;
     }
 
     public function getEmpClientCard(Request $request) {

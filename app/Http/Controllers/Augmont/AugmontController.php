@@ -27,20 +27,28 @@ class AugmontController extends Controller
         $todayDate = Carbon::now()->format('Y-m-d');
 
         $token = $this->checkToken();
+        
         if($token->token!=null || $token->token!="") {
             if($token->expiresAt != null) {
-                if ($todayDate >= $token->expiresAt) {
+                $date1 = Carbon::createFromFormat('Y-m-d', $todayDate);
+                $date2 = Carbon::createFromFormat('Y-m-d', $token->expiresAt);
+                $result = $date1->gte($date2);
+                if ($result) {
+                    $dateCheck = "true";
                     $tokenRes = $this->generateToken($token->email, $token->password, $token);
                 } else {
+                    $dateCheck = "false";
+                    // $tokenRes = $this->generateToken($token->email, $token->password, $token);
+                    // dd($tokenRes);
                     $tokenRes = $token->token;
                 }
-                
             } else {
                 $tokenRes = $this->generateToken($token->email, $token->password, $token);
             }
         } else {
             if($token->expiresAt != null) {
-                if ($todayDate > $token->expiresAt) {
+                $date2 = new DateTime($token->expiresAt);
+                if ($todayDate > $date2) {
                     $tokenRes = $this->generateToken($token->email, $token->password, $token);
                 } else {
                     $tokenRes = $token->token;
@@ -63,45 +71,49 @@ class AugmontController extends Controller
                 ]
             ]);
             $tokenRes = json_decode($res->getBody()->getContents());
-            // return $tokenRes;
+            \Log::channel('itsolution')->error("generateToken : ".$tokenRes);
+            if($tokenRes->statusCode==401) {
+                // $orderData['tokenStatus'] = $tokenRes->message;
+                return $tokenRes->statusCode;
+            } else {
+                $token->token = $tokenRes->result->data->accessToken;
+                $token->expiresAt = $tokenRes->result->data->expiresAt;
+                $token->tokenType = $tokenRes->result->data->tokenType;
+                $token->merchantId = $tokenRes->result->data->merchantId;
+                $tokensave = $token->save();
+                return $tokenRes->result->data->accessToken;
+            }
         }
         catch (\GuzzleHttp\Exception\RequestException $e) {
+            \Log::channel('itsolution')->error("generateToken : ".$e);
             $responseBody = $e->getResponse();
             $tokenRes = json_decode($responseBody->getBody()->getContents()); 
         }
-        
-        if($tokenRes->statusCode==401) {
-            // $orderData['tokenStatus'] = $tokenRes->message;
-            return $tokenRes->statusCode;
-        } else {
-            $token->token = $tokenRes->result->data->accessToken;
-            $token->expiresAt = $tokenRes->result->data->expiresAt;
-            $token->tokenType = $tokenRes->result->data->tokenType;
-            $token->merchantId = $tokenRes->result->data->merchantId;
-            $tokensave = $token->save();
-            return $tokenRes->result->data->accessToken;
-        }
-        
     }
 
     public function getCity(Request $request) {
-        $client = new Client(['verify' => false ]);
-        $tokentype = "Bearer ";
-        $authToken = $tokentype.$this->merchantAuth();
-        $url = env('AUG_URL').'merchant/v1/master/cities?stateId='.$request->state.'&count=5&page=1';
-        $headers = [
-            'Content-Type' => 'application/json',
-            'AccessToken' => 'key',
-            'Authorization' => $authToken,
-        ];
-        $res = $client->request('GET', 
-        env('AUG_URL').'merchant/v1/master/cities?stateId='.$request->state.'&count=100',[
-            'headers' => $headers
-        ]);
-        $statusCode = $res->getStatusCode(); 
-        // $this->assertEquals($statusCode,200,"actual value is not equals to expected");
-        $content = $res->getBody()->getContents();
-        return $content;
+        try {
+            $client = new Client(['verify' => false ]);
+            $tokentype = "Bearer ";
+            $authToken = $tokentype.$this->merchantAuth();
+            $url = env('AUG_URL').'merchant/v1/master/cities?stateId='.$request->state.'&count=5&page=1';
+            $headers = [
+                'Content-Type' => 'application/json',
+                'AccessToken' => 'key',
+                'Authorization' => $authToken,
+            ];
+            $res = $client->request('GET', 
+            env('AUG_URL').'merchant/v1/master/cities?stateId='.$request->state.'&count=100',[
+                'headers' => $headers
+            ]);
+            \Log::channel('itsolution')->info("getCity : ".json_encode($res));
+            $statusCode = $res->getStatusCode(); 
+            // $this->assertEquals($statusCode,200,"actual value is not equals to expected");
+            $content = $res->getBody()->getContents();
+            return $content;
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            \Log::channel('itsolution')->error("generateToken : ".$e);
+        }
     }
 
     public function getAugmontId(Request $request) {
@@ -147,10 +159,29 @@ class AugmontController extends Controller
 
     public function metalCount(Request $request) {
         $id = $request->session()->get('id');
-        $availCount = AugmontOrders::where(['user_id' => $id])->whereNotNull('transactionId')->orderBy("created_at", "desc")->get(['goldBalance','silverBalance'])->first();
-        if ($availCount === null) {
-            $availCount = array('goldBalance' => 0, 'silverBalance' => 0);
-        }
+        $availSilverSell = AugmontOrders::where(['user_id' => $id])
+            ->where('updated_at', '<=', Carbon::now()->subDays(2)->toDateTimeString())
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'silver')
+            ->sum('quantity');
+        $availGoldSell = AugmontOrders::where(['user_id' => $id])
+            ->where('updated_at', '<=', Carbon::now()->subDays(2)->toDateTimeString())
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'gold')
+            ->sum('quantity');
+        $silverBalance = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'silver')
+            ->sum('quantity');
+        $goldBalance = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'gold')
+            ->sum('quantity');
+        $availCount['availGoldSell'] = $availGoldSell;
+        $availCount['availSilverSell'] = $availSilverSell;
+        $availCount['goldBalance'] = $goldBalance;
+        $availCount['silverBalance'] = $silverBalance;
+        
         return $availCount;
     }
 

@@ -130,6 +130,24 @@ $(document).ready(function() {
         });
     });
 
+    $(document).on('click', '.getBuyInfo', function (e) {
+        e.preventDefault();
+        var settings = {
+            "url": "/augmont/getBuyInfo/"+$(this).attr("data-mti")+"/"+$(this).attr("data-ui"),
+            "method": "GET",
+            "timeout": 0,
+            "headers": {
+            "Accept": "application/json",
+            "Authorization": "Bearer "+localStorage.access_token,
+            },
+        };
+        $.ajax(settings).done(function (response) {
+            console.log(response);
+        }).fail(function(data){
+            console.log(data);
+        });
+    });
+
     $('#addao').submit(function (e) {
         var formData = new FormData($(this)[0]);
         e.preventDefault();
@@ -233,6 +251,13 @@ $(document).ready(function() {
                                         return "";
                                     }
                                 }
+                            }
+                        } },
+                        { data : null, render: function (data, type, row) { 
+                            if(row.merchantTransactionId==null) {
+                                return "-"; 
+                            } else {
+                                return "<a data-mti="+row.merchantTransactionId+" data-ui="+row.uniqueId+" class='btn btn-xs btn-info pull-right getBuyInfo'>Buy Info</a>";     
                             }
                         } }    
                     ],

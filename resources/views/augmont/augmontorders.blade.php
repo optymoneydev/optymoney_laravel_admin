@@ -41,6 +41,7 @@
 									<th>Payment Id</th>
 									<!-- <th>Current Amount</th> -->
 									<th>Invoice</th>
+									<th>Buy Info</th>
 								</tr>
 							</thead>
 						</table>

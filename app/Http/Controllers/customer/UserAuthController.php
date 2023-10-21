@@ -11,6 +11,7 @@ use App\Models\Bfsi_users_detail;
 use App\Models\Mf_cams;
 use App\Models\Mf_karvy;
 use App\Models\KycStatus;
+use App\Models\Careerpanel;
 use App\Models\FamilyAccounts;
 use Validator;
 use File;
@@ -31,7 +32,7 @@ class UserAuthController extends Controller
      * @return void
      */
     public function __construct() {
-        $this->middleware('auth:userapi', ['except' => ['tokenCheckgold', 'login', 'register', 'simple_signup', 'validateRegistrationOTP', 'forgot_verifyOTP', 'forgot_sendOTP', 'forgot_submitPassword', 'contact', 'requestOTPAPI', 'verifyOTPAPI', 'createAccountAPI', 'validatePanAadhaarAPI', 'finishSignupAPI']]);
+        $this->middleware('auth:userapi', ['except' => ['tokenCheckgold', 'login', 'register', 'simple_signup', 'career_signup', 'validateRegistrationOTP', 'forgot_verifyOTP', 'forgot_sendOTP', 'forgot_submitPassword', 'contact', 'requestOTPAPI', 'verifyOTPAPI', 'createAccountAPI', 'validatePanAadhaarAPI', 'finishSignupAPI']]);
     }
 
     public function simple_signup(Request $request) {
@@ -729,7 +730,7 @@ class UserAuthController extends Controller
                 'address1' => $request->address1,
                 'address2' => $request->address2,
                 'address3' => $request->address3,
-                'city' => $request->cityName,
+                'city' => $request->city,
                 'contact_no' => $request->contact_no,
                 'cust_name' => $request->cust_name,
                 'dob' => $request->dob,
@@ -743,9 +744,9 @@ class UserAuthController extends Controller
                 'pincode' => $request->pincode,
                 'r_of_nominee_w_app' => $request->r_of_nominee_w_app,
                 'sex' => $request->sex,
-                'state' => $request->stateName,
-                'augcity' => $request->city,
-                'augstate' => $request->state,
+                'state' => $request->state,
+                'augcity' => $request->augcity,
+                'augstate' => $request->augstate,
                 'clientHolding' => $request->clientHolding,
                 'occupationCode' => $request->occupationCode,
                 'taxStatus' => $request->taxStatus,
@@ -1125,6 +1126,174 @@ class UserAuthController extends Controller
                 "message" => "Unauthenticated_data."
             ];
             return $data;
+        }
+    }
+
+    public function career_signup(Request $request) {
+        try {
+            if($request->eotp) {
+            $result = (new VerificationController)->otp_verification_api($request->contact_no, $request->motp, $request->login_id, $request->eotp);
+            if($result=="SUCCESS") {
+                $data = $request->all();
+                $uid = $this->createVerifiedAccountNew($data, request()->headers->get('origin'))->pk_user_id;
+                $userStatus = \App\Models\Bfsi_user::where('pk_user_id', $uid)->update([
+                    'password' => md5($data['password']),
+                    'aug_pswd' => Hash::make($data['password']),
+                    'steps' => 3
+                ]);
+                $userStatus = Bfsi_users_detail::create([
+                    'fr_user_id' => $uid,
+                    'cust_name' => $data['fname'],
+                    'contact_no' => $data['contact_no']
+                ]);
+                if($uid>0){
+                    $response = [
+                        'status_code' => '201',
+                        'uid' => $uid,
+                        'message' => 'User profile created successfully',
+                        'steps' => 2
+                    ];
+                    return $this->login($request);
+                } else {
+                    $response = [
+                    'status_code' => '302',
+                    'message' => 'User profile creation Failed',
+                    ];
+                }
+            } else {
+                $response = [
+                    'status_code' => '417',
+                    'message' => 'OTP Verification Failed',
+                ];
+            }
+            } else {
+                $candidate = \App\Models\Careerpanel::where([
+                    'email' => $request->login_id
+                ])->first();
+                if($candidate) {
+                    $response = [
+                        'status_code' => 422,
+                        'message' => 'Already submitted the profile',
+                    ];
+                } else {
+                    $user = \App\Models\Bfsi_user::where([
+                        'login_id' => $request->login_id
+                    ])->first();
+                    if($user) {
+                        $path = public_path('uploads').'/users/'.$user->pk_user_id;
+                        if(!File::exists($path)) {
+                            $profile_path = $path.'/careers';
+                            File::makeDirectory($path, 0777, true, true);
+                            File::makeDirectory($profile_path, 0777, true, true);
+                        } else {
+                            $profile_path = $path.'/careers';
+                            File::makeDirectory($profile_path, 0777, true, true);
+                        }
+                        $fileitrList = [];
+                        if($request->file('resumeUpload') != null) {
+                            $comp_file               = request('resumeUpload');
+                            $comp_file_path          = $comp_file->getPathname();
+                            $comp_file_uploaded_name = $comp_file->getClientOriginalName();
+                            $fileName = $user->pk_user_id."_".time().'_profile_.'.$request->resumeUpload->extension();  
+                            $file_upload_status = $request->resumeUpload->move($profile_path, $fileName);
+                            $cp = new Careerpanel();
+                            $cp->fr_user_id = $user->pk_user_id;
+                            $cp->candidate_name = $request->fname;
+                            $cp->contact_no = $request->contact_no; 
+                            if($file_upload_status!="") {
+                                $cp->uploadStatus = "Success";
+                            } else {
+                                $cp->uploadStatus = "Failed";
+                            }
+                            $cp->email = $request->login_id;
+                            $cp->profileDoc = $fileName;
+                            $saveCP = $cp->save();
+                            $response = [
+                                'status_code' => 200,
+                                'message' => 'Profile Submitted Successfully'
+                            ];
+                        } else {
+                            $response = [
+                                'status_code' => 401,
+                                'message' => 'file upload missing. Please try again'
+                            ];
+                        }
+                    } else {
+                        $user = Bfsi_user::create([
+                            'contact' => $request->contact_no, 
+                            'login_id' => $request->login_id, 
+                            'password' => Hash::make("optymoney"),
+                            'aug_pswd' => Hash::make("optymoney"),
+                        ]);
+                        $userDetails = Bfsi_users_detail::create([
+                            'cust_name' => $request->fname, 
+                            'contact_no' => $request->contact_no, 
+                            'email' => $request->login_id, 
+                        ]);
+
+                        $path = public_path('uploads').'/users/'.$user->pk_user_id;
+                        if(!File::exists($path)) {
+                            $profile_path = $path.'/careers';
+                            File::makeDirectory($path, 0777, true, true);
+                            File::makeDirectory($profile_path, 0777, true, true);
+                        } else {
+                            $profile_path = $path.'/careers';
+                            File::makeDirectory($profile_path, 0777, true, true);
+                        }
+                        $fileitrList = [];
+                        if($request->file('resumeUpload') != null) {
+                            $comp_file               = request('resumeUpload');
+                            $comp_file_path          = $comp_file->getPathname();
+                            $comp_file_uploaded_name = $comp_file->getClientOriginalName();
+                            $fileName = $user->pk_user_id."_".time().'_profile_.'.$request->resumeUpload->extension();  
+                            $file_upload_status = $request->resumeUpload->move($profile_path, $fileName);
+                            $cp = new Careerpanel();
+                            $cp->fr_user_id = $user->pk_user_id;
+                            $cp->candidate_name = $request->fname;
+                            $cp->contact_no = $request->contact_no; 
+                            if($file_upload_status!="") {
+                                $cp->uploadStatus = "Success";
+                            } else {
+                                $cp->uploadStatus = "Failed";
+                            }
+                            $cp->email = $request->login_id;
+                            $cp->profileDoc = $fileName;
+                            $saveCP = $cp->save();
+                            $res1 = (new SMSController)->send_otp_sms($request->contact_no, "OTPAPI");
+                            if($res1=="SUCCESS") {
+                                $res2 = (new EmailController)->send_otp_email($request->login_id, "OTPAPI");
+                                if($res2=="SUCCESS") {
+                                    $response = [
+                                        'status_code' => 200,
+                                        'message' => 'OTP sent to your mobile number and email address, if not recived mail kindly check spam.',
+                                        'email_otp_status' => 'email otp sent',
+                                        'mobile_otp_status' => 'mobile otp sent'
+                                    ];
+                                } else {
+                                    $response = [
+                                        'status_code' => 417,
+                                        'message' => 'Failed sending OTP. Try again...',
+                                        'resEmail' => $res2
+                                    ];  
+                                }
+                            } else {
+                                $response = [
+                                'status_code' => 417,
+                                'message' => 'Failed sending OTP. Try again...',
+                                ];  
+                            }
+                        } else {
+                            $response = [
+                                'status_code' => 401,
+                                'message' => 'file upload missing. Please try again'
+                            ];
+                        }
+                    }
+                }
+            }
+            return $response;
+        } catch(Exception $e) {
+            return $e;
         }
     }
 }

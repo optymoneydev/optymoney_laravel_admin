@@ -362,7 +362,7 @@ class EmailController extends Controller
     $mailInfo->sender = "Optymoney";
     $mailInfo->senderCompany = "Optymoney";
     $mailInfo->to = $userdata['login_id'];
-    $mailInfo->subject = "Optymoney - Registration Successful for the Webinar on ".$eventData->event_name;
+    $mailInfo->subject = $eventData->bm_subject;
     $mailInfo->name = "Optymoney";
     $mailInfo->from = "no-reply@optymoney.com";
     $mailInfo->template = "email-templates.event-reg";

@@ -34,6 +34,25 @@ setTimeout(function(){
             itrData();
             mutualFunds();
             augmontOrders();
+            
+            $(document).on('click', '#createAugmontAccountLink', function (e) {
+                e.preventDefault();
+                var settings = {
+                    "url": APP_URL+"/crm/createAugmontAccount/"+$('#clientId').val(),
+                    "method": "GET",
+                    "timeout": 0,
+                    "headers": {
+                    "Accept": "application/json",
+                    "Authorization": "Bearer "+localStorage.access_token,
+                    },
+                };
+                $.ajax(settings).done(function (response) {
+                    console.log(response);
+                }).fail(function(data){
+                    console.log(data);
+                });
+            });
+
             $(document).on('click', '.re_evaluate', function (e) {
                 e.preventDefault();
                 var data = {"pan":$(this).attr("data-pan"), "scheme":$(this).attr("data-scheme")};

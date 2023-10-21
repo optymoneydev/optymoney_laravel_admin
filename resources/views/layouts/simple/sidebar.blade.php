@@ -48,6 +48,7 @@
 						</a>
 						<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/crm' ? 'block;' : 'none;' }}">
 							<li><a class="lan-4 {{ Route::currentRouteName()=='clientsCards' ? 'active' : '' }}" href="{{route('clientsCards')}}">{{ trans('lang.Clients') }}</a></li>
+							<li><a class="lan-4 {{ Route::currentRouteName()=='investInterestCards' ? 'active' : '' }}" href="{{route('investInterestCards')}}">{{ trans('lang.InvestInterest') }}</a></li>
 						</ul>
 					</li>
 					@endIf

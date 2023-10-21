@@ -26,7 +26,9 @@ class EventController extends Controller
 
     public function getEventUsers(Request $request) {
         $eventUsersData = EventUsers::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'event_details.user_id')
-            ->get(['event_details.*', 'bfsi_users_details.contact_no', 'bfsi_users_details.email', 'bfsi_users_details.cust_name']);
+        ->join('bfsi_user', 'bfsi_user.pk_user_id', '=', 'event_details.user_id')
+        ->orderBy("event_details.event_d_id", "desc")
+        ->get(['event_details.*', 'bfsi_user.login_id', 'bfsi_users_details.contact_no', 'bfsi_users_details.email', 'bfsi_users_details.cust_name']);
         return $eventUsersData;
     }
     
@@ -153,7 +155,28 @@ class EventController extends Controller
                 'cust_name' => $request->formname,
                 'contact_no' => $request->formnumber
               ]);
-            
+              $eventCheck = EventUsers::where([
+                'user_id' => $createAccountStatus,
+                'event_p_code' => $request->url
+            ])->first();
+            if($eventCheck) {
+                $data = [
+                    'status_code' => 201,
+                    'message' => 'Already registered to this event.'
+                ];
+            } else {
+                $eventReg->user_id = $createAccountStatus;
+                $eventReg->event_p_code = $request->url;
+                $eventReg->user_org = $request->formorg;
+                $eventReg->save();
+
+                $userData = (new UsersController)->getUserDataByUID($createAccountStatus);
+                $res2 = (new EmailController)->send_event_reg_status($userData, $eventData);
+                $data = [
+                    'status_code' => 201,
+                    'message' => 'Registered to this event.'
+                ];
+            }
             $userData = (new UsersController)->getUserDataByUID($createAccountStatus);
             $res2 = (new EmailController)->send_user_creation_email_from_event($userData, $pswd);
             $res2 = (new EmailController)->send_event_reg_status($userData, $eventData);

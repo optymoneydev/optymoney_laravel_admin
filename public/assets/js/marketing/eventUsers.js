@@ -24,7 +24,7 @@ setTimeout(function(){
                         "autoWidth": true,
                         "scrollX": true,
                         dom: 'Bfrtip',
-                        order: [[3, 'desc']],
+                        order: false,
                         buttons: [
                             'copyHtml5',
                             'excelHtml5',
@@ -34,11 +34,11 @@ setTimeout(function(){
                         "data" : response,
                         "columns" : [
                             { data : null, render: function (data, type, row) { return row.cust_name; } }, 
-                            { data : null, render: function (data, type, row) { return row.email; } }, 
+                            { data : null, render: function (data, type, row) { return row.login_id; } }, 
                             { data : null, render: function (data, type, row) { return row.contact_no; } }, 
                             { data : null, render: function (data, type, row) { return row.event_p_code; } }, 
                             { data : null, render: function (data, type, row) { return row.user_org; } },
-                            { data : null, render: function (data, type, row) { return row.event_timestamp; }
+                            { data : null, render: function (data, type, row) { return row.event_created_date; }
                         }],
                         "fnInitComplete": function() { $("#export-button-eventUsers").css("width","100%"); }
                     }).buttons().container().appendTo('#export-button-eventUsers_wrapper .col-md-6:eq(0)');

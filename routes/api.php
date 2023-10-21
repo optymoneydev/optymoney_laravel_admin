@@ -17,6 +17,7 @@ use App\Http\Controllers\itr\ITRController;
 use App\Http\Controllers\pms\PMSController;
 use App\Http\Controllers\insurance\InsuranceController;
 use App\Http\Controllers\Augmont\OrdersAugmontController;
+use App\Http\Controllers\Augmont\BuyAugmontController;
 use App\Http\Controllers\Subscription\SubscriptionController;
 use App\Http\Controllers\cms\FAQController;
 use App\Http\Controllers\cms\BlogsController;
@@ -46,6 +47,7 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
     Route::group(['prefix' => 'customer', 'namespace' => 'customer'],function () {
         Route::post('/login', [UserAuthController::class, 'login']);
         Route::post('/simple_signup', [UserAuthController::class, 'simple_signup']);
+        Route::post('/career_signup', [UserAuthController::class, 'career_signup']);
         Route::post('/contact', [UsersController::class, 'saveContactUsForm']);
         Route::post('/subscriptionAPI', [SubscriptionController::class, 'subscriptionAPI']);
         
@@ -93,6 +95,15 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
             Route::post('createBSE', [BSEController::class, 'createBSE'])->name('createBSE'); 
             Route::get('updateBSE', [BSEController::class, 'updateBSE'])->name('updateBSE'); 
 
+        });
+
+        Route::group(['prefix' => 'augmont', 'namespace' => 'augmont'],function () {
+            // Route::get('/getDocs', [PMSController::class, 'getDocs']); 
+            Route::group(['middleware' => ['cors', 'jwt.verify']], function() {
+                Route::get('/getAugOrdersByUserAPI1', [OrdersAugmontController::class, 'getAugOrdersByUserAPI']); 
+                Route::get('/getMetalCountAPI1', [AugmontController::class, 'getMetalCountAPI']); 
+                Route::post('silverBuy', [BuyAugmontController::class, 'buyAugmont'])->name('augmont.buyAugmont');
+            });
         });
     });
 

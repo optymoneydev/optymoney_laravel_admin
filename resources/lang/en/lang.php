@@ -103,6 +103,7 @@
 		'camsTransactions' => 'Cams Transactions',
 		'empanel' => 'Empanel',
 		'mfsettings' => 'Settings',
-		'assign_client' => 'Assign Client'
+		'assign_client' => 'Assign Client',
+		'InvestInterest' => 'Invest Interest'
 	]
 ?>

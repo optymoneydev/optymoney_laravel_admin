@@ -233,7 +233,7 @@ class ITRController extends Controller
                     'login_id' => $request->hd_email, 
                     'password' => bcrypt("optymoney")
                 ]);
-				$userDetails = Bfsi_user::create([
+				$userDetails = Bfsi_users_detail::create([
                     'cust_name' => $request->fname, 
                     'contact_no' => $request->hd_mobile, 
                     'email' => $request->hd_email, 

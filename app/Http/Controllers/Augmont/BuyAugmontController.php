@@ -721,74 +721,55 @@ class BuyAugmontController extends Controller
     }
 
     public function manualPostOrder(Request $request) {
-        $invoice = new InvoiceAugmontController();
-        $orderAugmontcrtl = new OrdersAugmontController();
-        $general = new GeneralController();
-        $orderData = $orderAugmontcrtl->OrdersByTransactionId($request->ao_orders);
-        $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
-            'razorpayId' => $request->ao_transaction_id
-        ]);
-        
-        $mop = $request->ao_mop;
-        $purchasedPrice = $orderData->preTaxAmount;
-        $form_params = [
-            'lockPrice' => $orderData->lockPrice,
-            'emailId' => $orderData->emailId,
-            'metalType' => $orderData->metalType,
-            'quantity' => $orderData->quantity,
-            'merchantTransactionId' => $orderData->merchantTransactionId,
-            'userName' => $orderData->userName,
-            'userAddress' => $orderData->userAddress,
-            'userCity' => $orderData->userCity,
-            'userState' => $orderData->userState,
-            'userPincode' => $orderData->userPincode,
-            'uniqueId' => $orderData->uniqueId,
-            'blockId' => $orderData->blockId,
-            'mobileNumber' => $orderData->mobileNumber,
-            'modeOfPayment' => $mop
-        ];
-        $currentRates_content = json_decode((new RatesAugmontController)->currentRates());
-        $currentRates = $currentRates_content->result->data;
-        if($orderData->metalType=="silver") {
-            $form_params['lockPrice'] = $currentRates->rates->sBuy;
-            $form_params['blockId'] = $currentRates->blockId;
-            $form_params['quantity'] = round($purchasedPrice/$currentRates->rates->sBuy, 3);
-        } else {
-            if($orderData->metalType=="gold") {
-                $form_params['lockPrice'] = $currentRates->rates->gBuy;
+        try {
+            $invoice = new InvoiceAugmontController();
+            $orderAugmontcrtl = new OrdersAugmontController();
+            $general = new GeneralController();
+            $orderData = $orderAugmontcrtl->OrdersByTransactionId($request->ao_orders);
+            $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
+                'razorpayId' => $request->ao_transaction_id
+            ]);
+            $mop = $request->ao_mop;
+
+            $purchasedPrice = $orderData->preTaxAmount;
+            $form_params = [
+                'lockPrice' => $orderData->lockPrice,
+                'emailId' => $orderData->emailId,
+                'metalType' => $orderData->metalType,
+                'quantity' => $orderData->quantity,
+                'merchantTransactionId' => $orderData->merchantTransactionId,
+                'userName' => $orderData->userName,
+                'userAddress' => $orderData->userAddress,
+                'userCity' => $orderData->userCity,
+                'userState' => $orderData->userState,
+                'userPincode' => $orderData->userPincode,
+                'uniqueId' => $orderData->uniqueId,
+                'blockId' => $orderData->blockId,
+                'mobileNumber' => $orderData->mobileNumber,
+                'modeOfPayment' => ""
+            ];
+            $currentRates_content = json_decode((new RatesAugmontController)->currentRates());
+            $currentRates = $currentRates_content->result->data;
+            if($orderData->metalType=="silver") {
+                $form_params['lockPrice'] = $currentRates->rates->sBuy;
                 $form_params['blockId'] = $currentRates->blockId;
-                $form_params['quantity'] = round($purchasedPrice/$currentRates->rates->gBuy, 3);
-            }   
-        }
-        $augOrderRes = $this->postOrderToAugmont($form_params);
-        $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
-            'description' => json_encode($augOrderRes),
-            'augmont_input' => json_encode($form_params)
-        ]);
-        
-        if($augOrderRes->statusCode==422) {
-            $errors =  $augOrderRes->errors;
-            foreach ($errors as $key => $values) {
-                if($key=="blockId") {
-                    foreach ($values as $key1 => $value) {
-                        if($value->code == 4690) {
-                            $currentRates_content = json_decode((new RatesAugmontController)->currentRates());
-                            $currentRates = $currentRates_content->result->data;
-                            if($orderData->metalType=="silver") {
-                                $form_params['lockPrice'] = $currentRates->rates->sBuy;
-                            } else {
-                                if($orderData->metalType=="gold") {
-                                    $form_params['lockPrice'] = $currentRates->rates->gBuy;
-                                }   
-                            }
-                            $form_params['blockId'] = $currentRates->blockId;
-                        }
-                    }
-                    $augOrderRes = $this->postOrderToAugmont($form_params);
-                } else {
-                    if($key=="block_rate") {
+                $form_params['quantity'] = round($purchasedPrice/$currentRates->rates->sBuy, 3);
+            } else {
+                if($orderData->metalType=="gold") {
+                    $form_params['lockPrice'] = $currentRates->rates->gBuy;
+                    $form_params['blockId'] = $currentRates->blockId;
+                    $form_params['quantity'] = round($purchasedPrice/$currentRates->rates->gBuy, 3);
+                }   
+            }
+            // dd($form_params);
+            $augOrderRes = $this->postOrderToAugmont($form_params);
+            
+            if($augOrderRes->statusCode==422) {
+                $errors =  $augOrderRes->errors;
+                foreach ($errors as $key => $values) {
+                    if($key=="blockId") {
                         foreach ($values as $key1 => $value) {
-                            if($value->code == 4220 || $value->code == 4221) {
+                            if($value->code == 4690) {
                                 $currentRates_content = json_decode((new RatesAugmontController)->currentRates());
                                 $currentRates = $currentRates_content->result->data;
                                 if($orderData->metalType=="silver") {
@@ -803,46 +784,110 @@ class BuyAugmontController extends Controller
                         }
                         $augOrderRes = $this->postOrderToAugmont($form_params);
                     } else {
-                        if($key=="merchantTransactionId") {
-                            $merchantTransactionId = "AUGOM_".$request->ao_cust_id."_".$general->uniqueNumericId(5)."_".$general->uniqueNumericId(10);
-                            $form_params['merchantTransactionId'] = $merchantTransactionId;
-                            $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
-                                'merchantTransactionId' => $merchantTransactionId
-                            ]);
+                        if($key=="block_rate") {
+                            foreach ($values as $key1 => $value) {
+                                if($value->code == 4220 || $value->code == 4221) {
+                                    $currentRates_content = json_decode((new RatesAugmontController)->currentRates());
+                                    $currentRates = $currentRates_content->result->data;
+                                    if($orderData->metalType=="silver") {
+                                        $form_params['lockPrice'] = $currentRates->rates->sBuy;
+                                    } else {
+                                        if($orderData->metalType=="gold") {
+                                            $form_params['lockPrice'] = $currentRates->rates->gBuy;
+                                        }   
+                                    }
+                                    $form_params['blockId'] = $currentRates->blockId;
+                                }
+                            }
                             $augOrderRes = $this->postOrderToAugmont($form_params);
+                        } else {
+                            if($key=="merchantTransactionId") {
+                                $merchantTransactionId = "AUGOM_".$request->ao_cust_id."_".$general->uniqueNumericId(5)."_".$general->uniqueNumericId(10);
+                                $form_params['merchantTransactionId'] = $merchantTransactionId;
+                                $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
+                                    'merchantTransactionId' => $merchantTransactionId
+                                ]);
+                                $augOrderRes = $this->postOrderToAugmont($form_params);
+                            }
                         }
                     }
                 }
             }
+            \Log::channel('itsolution')->error(json_encode(['id' => $request, 'function' => "manualPostOrder", 'orderres' => $augOrderRes]));
+            $upstatus = AugmontOrders::where('id', $request->ao_orders)->update([
+                'description' => json_encode($augOrderRes),
+                'augmont_input' => json_encode($form_params)
+            ]);
+            // $orderData['augstatusCode'] = $augOrderRes->statusCode;
+            if(isset( $augOrderRes->errors)) {
+                $orderData['errors'] = $augOrderRes->errors;
+            }
+            $statusCode = $augOrderRes->statusCode; 
+            $augmontRes = $augOrderRes->result->data;
+            $orderData->statusCode = "200";
+            $orderData->blockId = $currentRates->blockId;
+            $orderData->lockPrice = $form_params['lockPrice'];
+            $orderData->preTaxAmount = $augmontRes->preTaxAmount;
+            $orderData->transactionId = $augmontRes->transactionId;
+            $orderData->goldBalance = $augmontRes->goldBalance;
+            $orderData->silverBalance = $augmontRes->silverBalance;
+            $orderData->totalTaxAmount = $augmontRes->taxes->totalTaxAmount;
+            $orderData->taxSplit_cgst_taxPerc = $augmontRes->taxes->taxSplit[0]->taxPerc;
+            $orderData->taxSplit_cgst_taxAmount = $augmontRes->taxes->taxSplit[0]->taxAmount;
+            $orderData->taxSplit_sgst_taxPerc = $augmontRes->taxes->taxSplit[1]->taxPerc;
+            $orderData->taxSplit_sgst_taxAmount = $augmontRes->taxes->taxSplit[1]->taxAmount;
+            $orderData->invoiceNumber = $augmontRes->invoiceNumber;
+            $saveOrderStatus = $orderData->save();
+            // $res2 = (new EmailController)->send_purchase_success($augmontRes->transactionId);
+            $dataInv = $invoice->object_to_array($invoice->getInvoiceData($augmontRes->transactionId)->result->data);
+            // dd($dataInv);
+            session()->forget('orderData');
+            $myObj = array();
+            $myObj['augOrder'] = $augOrderRes;
+            $myObj['savestatus'] = $saveOrderStatus;
+            return $myObj;
+            // return View::make('augmont.razorpayView', $dataInv); 
+        } catch (\Exception $e) {
+            \Log::channel('itsolution')->error(json_encode(['id' => $request, 'function' => "manualPostOrder", 'exception' => $e]));
+            return $e;
         }
-        // $orderData['augstatusCode'] = $augOrderRes->statusCode;
-        if(isset( $augOrderRes->errors)) {
-            $orderData['errors'] = $augOrderRes->errors;
+    }
+
+    public function getBuyInfo($merchantTransactionId, $uniqueId) {
+        try {
+            $tokentype = "Bearer ";
+            $authToken = $tokentype.(new AugmontController)->merchantAuth();
+            if($authToken==401) {
+                return 401;
+            } else {
+                $res = (new AugmontController)->clientRequests('GET', 'merchant/v1/buy/'.$merchantTransactionId.'/'.$uniqueId, "");
+                if($res->statusCode == 200) {
+                    $data = $res->result->data;
+                    if($augmontOrder->invoiceNumber == null) { 
+                        $augmontOrder = AugmontOrders::where('merchantTransactionId', $merchantTransactionId)->get()->first();
+                        $augmontOrder->statusCode = "200";
+                        $augmontOrder->preTaxAmount = $data->preTaxAmount;
+                        $augmontOrder->transactionId = $data->transactionId;
+                        $augmontOrder->goldBalance = $data->goldBalanceInGM;
+                        $augmontOrder->silverBalance = $data->silverBalanceInGM;
+                        $augmontOrder->totalTaxAmount = $data->taxes->totalTaxAmount;
+                        $augmontOrder->taxSplit_cgst_taxPerc = $data->taxes->taxSplit[0]->taxPerc;
+                        $augmontOrder->taxSplit_cgst_taxAmount = $data->taxes->taxSplit[0]->taxAmount;
+                        $augmontOrder->taxSplit_sgst_taxPerc = $data->taxes->taxSplit[1]->taxPerc;
+                        $augmontOrder->taxSplit_sgst_taxAmount = $data->taxes->taxSplit[1]->taxAmount;
+                        $augmontOrder->invoiceNumber = $data->invoiceNumber;
+                        $saveOrderStatus = $augmontOrder->save();
+                        return json_encode($saveOrderStatus);
+                    } else {
+                        return true;
+                    }
+                } else {
+                    return $res;
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::channel('itsolution')->error(json_encode(['id' => $uniqueId, 'function' => "getBuyInfo", 'exception' => $e]));
+            return $e;
         }
-        $statusCode = $augOrderRes->statusCode; 
-        $augmontRes = $augOrderRes->result->data;
-        $orderData->statusCode = "200";
-        $orderData->blockId = $currentRates->blockId;
-        $orderData->lockPrice = $form_params['lockPrice'];
-        $orderData->preTaxAmount = $augmontRes->preTaxAmount;
-        $orderData->transactionId = $augmontRes->transactionId;
-        $orderData->goldBalance = $augmontRes->goldBalance;
-        $orderData->silverBalance = $augmontRes->silverBalance;
-        $orderData->totalTaxAmount = $augmontRes->taxes->totalTaxAmount;
-        $orderData->taxSplit_cgst_taxPerc = $augmontRes->taxes->taxSplit[0]->taxPerc;
-        $orderData->taxSplit_cgst_taxAmount = $augmontRes->taxes->taxSplit[0]->taxAmount;
-        $orderData->taxSplit_sgst_taxPerc = $augmontRes->taxes->taxSplit[1]->taxPerc;
-        $orderData->taxSplit_sgst_taxAmount = $augmontRes->taxes->taxSplit[1]->taxAmount;
-        $orderData->invoiceNumber = $augmontRes->invoiceNumber;
-        $saveOrderStatus = $orderData->save();
-        // $res2 = (new EmailController)->send_purchase_success($augmontRes->transactionId);
-        $dataInv = $invoice->object_to_array($invoice->getInvoiceData($augmontRes->transactionId)->result->data);
-        // dd($dataInv);
-        session()->forget('orderData');
-        $myObj = array();
-        $myObj['augOrder'] = $augOrderRes;
-        $myObj['savestatus'] = $saveOrderStatus;
-        return $myObj;
-        // return View::make('augmont.razorpayView', $dataInv); 
     }
 }
