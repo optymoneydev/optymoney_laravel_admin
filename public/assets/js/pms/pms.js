@@ -21,7 +21,7 @@ setTimeout(function(){
             } );
 
             "use strict";
-            // pmsData();
+            pmsData();
             $('.page-alert .close').click(function(e) {
                 e.preventDefault();
                 $(this).closest('.page-alert').slideUp();
@@ -271,18 +271,7 @@ setTimeout(function(){
                         "scrollX": true,
                         dom: 'Bfrtip',
                         order: false,
-                        buttons: [
-                            {
-                                text: 'New Form',
-                                action: function ( e, dt, node, config ) {
-                                    $('#pmsForm_modal').modal("show");
-                                }
-                            },
-                            'copyHtml5',
-                            'excelHtml5',
-                            'csvHtml5',
-                            'pdfHtml5'
-                        ],
+                        buttons: buttons,
                         "data" : response,
                         "columns" : [
                             { data : null, render: function (data, type, row) { return row.cust_name; } }, 
@@ -311,7 +300,24 @@ setTimeout(function(){
                                 }
                             }, 
                             { data : null, render: function (data, type,row) { 
-                                return '<div class="m-b-30"><div class="btn-group" role="group" aria-label="Button group with nested dropdown"><div class="btn-group" role="group"><button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button><div class="dropdown-menu" aria-labelledby="btnGroupDrop1"><a href="#" class="dropdown-item viewInsurance" data-id="' + row.pms_id + '">View</a> <a href="#" class="dropdown-item editInsurance" data-id="' + row.pms_id + '">Edit</a> <a href="#" class="dropdown-item deleteInsurance" data-id="' + row.pms_id + '">Delete</a></div></div></div></div>';
+                                var viewDiv = '<div class="m-b-30"><div class="btn-group" role="group" aria-label="Button group with nested dropdown"><div class="btn-group" role="group"><button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button><div class="dropdown-menu" aria-labelledby="btnGroupDrop1">';
+                                // if(viewOption) {
+                                //     viewDiv = viewDiv+'<a href="clientCard/'+row.fr_user_id+'/view" class="dropdown-item">View</a>';
+                                // }
+                                if(editOption) {
+                                    viewDiv = viewDiv+'<a href="" class="dropdown-item editInsurance" data-id="' + row.pms_id + '">Edit</a>';
+                                    // viewDiv = viewDiv+'<button type="button" class="btn btn-warning insEdit" data-id="' + row.ins_id + '">Edit</button>';
+                                }
+                                if(deleteOption) {
+                                    viewDiv = viewDiv+'<a href="" class="dropdown-item deleteInsurance" data-id="' + row.pms_id + '">Delete</a>';
+                                    // viewDiv = viewDiv+'<button type="button" class="btn btn-danger insDelete" data-id="' + row.ins_id + '">Delete</button>';
+                                }
+                                viewDiv = viewDiv+'</div></div></div></div>';
+                                if(viewOption == false && editOption == false) {
+                                    return ""; 
+                                } else {
+                                    return viewDiv; 
+                                }
                             }
                         }],
                         "fnInitComplete": function() { $("#insurance_table").css("width","100%"); }

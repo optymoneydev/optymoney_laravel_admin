@@ -26,8 +26,9 @@ setTimeout(function(){
                 e.preventDefault();
                 var formData = new FormData($(this)[0]);
                 let result = $('#eventContent_sample').html().replace(/'/g, "&#39");
+                let feedbackLink = "<a href=https://optymoney.com/feedbackEvent/"+$('#event_code').val()+">Give Us The Feedback</a>";
         
-                formData.append('bm_content', result);
+                formData.append('bm_content', result+feedbackLink);
                 $.ajax({
                     type: "POST",
                     url: 'saveEvent',

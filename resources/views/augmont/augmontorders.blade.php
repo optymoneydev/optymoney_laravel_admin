@@ -5,6 +5,7 @@
 <link rel="stylesheet" type="text/css" href="{{asset('assets/css/vendors/datatables.css')}}">
 <link rel="stylesheet" type="text/css" href="{{asset('assets/css/vendors/datatable-extension.css')}}">
 <link rel="stylesheet" type="text/css" href="{{asset('assets/css/vendors/select2.css')}}">
+<link rel="stylesheet" type="text/css" href="{{asset('assets/css/vendors/daterange-picker.css')}}">
 @endsection
 
 @section('style')
@@ -22,26 +23,84 @@
 @section('content')
 <div class="container-fluid">
 	<div class="row">
-		<!-- Server Side Processing start-->
 		<div class="col-sm-12">
 			<div class="card">
 				<div class="card-body">
-					<div class="table-responsive">
-                  		<table class="display datatables" id="server-side-datatable">
+					<div class="row">
+						<div class="col-xl-3">
+							<div class="theme-form">
+								<div class="mb-3">
+									<select class="form-control col-sm-12" name="resultType" id="resultType" data-select2-id="resultType" tabindex="-1" aria-hidden="true">
+										<option value="">Select Data Type</option>
+										<option value="1">Transactions</option>
+										<option value="2">Summary</option>	
+									</select>
+								</div>
+							</div>
+						</div>
+						<div class="col-xl-9" id="transactionFilter">
+							<div class="row">
+								<div class="col-xl-3">
+									<div class="theme-form">
+										<div class="mb-3">
+											<input class="form-control digits" type="text" name="daterange" id="daterange" value="">
+										</div>
+									</div>
+								</div>
+								<div class="col-xl-3">
+									<div class="theme-form">
+										<div class="mb-3">
+											<select class="form-control col-sm-12" name="filter_cust_id" id="filter_cust_id" data-select2-id="filter_cust_id" tabindex="-1" aria-hidden="true">
+												<option value="" data-select2-id="2">Select</option>
+											</select>
+										</div>
+									</div>
+								</div>
+								<div class="col-xl-2">
+									<div class="theme-form">
+										<div class="mb-3">
+											<button class="btn btn-danger btn-sm" style="color:white" type="submit" name="searchFilter" id="searchFilter">Search</button>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="table-responsive" id="transactionsTable">
+                  		<table class="display datatables" id="server-side-datatable" style="font-size: 12px">
 							<thead>
 								<tr>
-									<th>Transaction Date</th>
-									<th>Transaction Id</th>
+									<th>Transaction<br>Date</th>
 									<th>Customer</th>
 									<th>Contact</th>
-									<th>Order Type</th>
-									<th>Metal Type</th>
-                           			<th>Gold/Silver Grams</th>
-									<th>Purchase/Sell Amount</th>
-									<th>Payment Id</th>
-									<!-- <th>Current Amount</th> -->
+									<th>Order<br>Type</th>
+									<th>Metal<br>Type</th>
+                           			<th>Gold/Silver<br>Grams</th>
+									<th>Purchase/Sell<br>Amount</th>
+									<th>Current<br>Amount</th>
+									<th>Profit/Loss</th>
 									<th>Invoice</th>
 									<th>Buy Info</th>
+								</tr>
+							</thead>
+						</table>
+					</div>
+					<div class="table-responsive" id="summaryTable">
+                  		<table class="display datatables" id="summaryTableData" style="font-size: 12px">
+							<thead>
+								<tr>
+									<th>Customer</th>
+									<th>Contact</th>
+									<th>Gold<br>Quantity</th>
+									<th>Gold<br>Pre-Tax<br>Amount</th>
+									<th>Gold<br>Total<br>Amount</th>
+									<th>Gold<br>Current<br>Amount</th>
+									<th>Gold<br>Profit/Loss</th>
+									<th>Silver<br>Quantity</th>
+									<th>Silver<br>Pre-Tax<br>Amount</th>
+									<th>Silver<br>Total<br>Amount</th>
+									<th>Silver<br>Current<br>Amount</th>
+									<th>Silver<br>Profit/Loss</th>
 								</tr>
 							</thead>
 						</table>
@@ -49,7 +108,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="modal fade" id="augmontOrderForm_modal" tabindex="-1" role="dialog" aria-labelledby="aoForm_modal" aria-hidden="true" data-keyboard="false" data-backdrop="static">
+		<div class="modal fade" id="newForm" tabindex="-1" role="dialog" aria-labelledby="aoForm_modal" aria-hidden="true" data-keyboard="false" data-backdrop="static">
 			<div class="modal-dialog modal-dialog-centered modal-xl" role="document">
 				<div class="modal-content">
 					<form class="needs-validation" novalidate="" name="addao" id="addao" method="POST" enctype="multipart/form-data">
@@ -258,10 +317,11 @@
 <script src="{{asset('assets/js/datatable/datatable-extension/dataTables.fixedHeader.min.js')}}"></script>
 <script src="{{asset('assets/js/datatable/datatable-extension/dataTables.rowReorder.min.js')}}"></script>
 <script src="{{asset('assets/js/datatable/datatable-extension/dataTables.scroller.min.js')}}"></script>
-<script src="{{asset('assets/js/datepicker/date-picker/datepicker.js')}}"></script>
-<script src="{{asset('assets/js/datepicker/date-picker/datepicker.en.js')}}"></script>
-<script src="{{asset('assets/js/datatable/datatable-extension/custom.js')}}"></script>
+<script src="{{asset('assets/js/datepicker/daterange-picker/moment.min.js')}}"></script>
+<script src="{{asset('assets/js/datepicker/daterange-picker/daterangepicker.js')}}"></script>
+<script src="{{asset('assets/js/datepicker/daterange-picker/daterange-picker.custom.js')}}"></script>
 <script src="{{asset('assets/js/height-equal.js')}}"></script>
 <script src="{{asset('assets/js/select2/select2.full.min.js')}}"></script>
+
 <script src="{{asset('assets/js/augmont/orders.js?v=1.0')}}"></script>
 @endsection

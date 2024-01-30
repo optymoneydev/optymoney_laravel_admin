@@ -26,7 +26,7 @@
 			<div class="card">
 				<div class="card-body">
 					<div class="dt-ext table-responsive">
-						<div class="modal fade" id="itrvForm_modal" tabindex="-1" role="dialog" aria-labelledby="itrvForm_modal" aria-hidden="true">
+						<div class="modal fade" id="newForm" tabindex="-1" role="dialog" aria-labelledby="newForm" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered" role="document">
 								<div class="modal-content">
 									<form class="needs-validation" novalidate="" id="addITRV" method="POST" enctype="multipart/form-data">

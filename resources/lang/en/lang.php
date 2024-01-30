@@ -104,6 +104,12 @@
 		'empanel' => 'Empanel',
 		'mfsettings' => 'Settings',
 		'assign_client' => 'Assign Client',
-		'InvestInterest' => 'Invest Interest'
+		'InvestInterest' => 'Invest Interest',
+		'LogRecords' => 'Log Records',
+		'usrmngt' => 'User Management',
+		'roles' => 'Roles',
+		'permissions' => 'Permissions',
+		'otherInvestments' => 'Other Investments',
+		'support' => 'Support'
 	]
 ?>

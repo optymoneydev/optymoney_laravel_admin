@@ -13,6 +13,7 @@ use App\Models\Mf_karvy;
 use App\Models\KycStatus;
 use App\Models\Careerpanel;
 use App\Models\FamilyAccounts;
+use App\Models\Invest_Interest;
 use Validator;
 use File;
 use Session;
@@ -23,6 +24,8 @@ use App\Http\Controllers\Nsdl\NsdlController;
 use App\Http\Controllers\KycController;
 use App\Http\Controllers\Users\UsersController;
 use App\Http\Controllers\Augmont\User\UserAugmontController;
+use Jenssegers\Agent\Facades\Agent;
+
 
 class UserAuthController extends Controller
 {
@@ -32,7 +35,7 @@ class UserAuthController extends Controller
      * @return void
      */
     public function __construct() {
-        $this->middleware('auth:userapi', ['except' => ['tokenCheckgold', 'login', 'register', 'simple_signup', 'career_signup', 'validateRegistrationOTP', 'forgot_verifyOTP', 'forgot_sendOTP', 'forgot_submitPassword', 'contact', 'requestOTPAPI', 'verifyOTPAPI', 'createAccountAPI', 'validatePanAadhaarAPI', 'finishSignupAPI']]);
+        $this->middleware('auth:userapi', ['except' => ['tokenCheckgold', 'login', 'register', 'simple_signup', 'career_signup', 'validateRegistrationOTP', 'forgot_verifyOTP', 'forgot_sendOTP', 'forgot_submitPassword', 'contact', 'requestOTPAPI', 'verifyOTPAPI', 'createAccountAPI', 'validatePanAadhaarAPI', 'finishSignupAPI', 'interestedForm']]);
     }
 
     public function simple_signup(Request $request) {
@@ -417,11 +420,11 @@ class UserAuthController extends Controller
             return response()->json($validator->errors(), 422);
         }
         if (! $token = auth()->guard('userapi')->attempt($validator->validated())) {
-            
             $user = Bfsi_user::where([
                 'login_id' => $request->login_id,
                 'password' => md5($request->password)
             ])->first();
+            \Log::channel('logindata')->info(json_encode(['id' => $user->pk_user_id, 'ip' => $request->ip(), 'login' => Agent::device(), 'function' => "sip_payment"]));
             if(isset($user)) {
                 if($user->password == md5($request->password)) { // If their password is still MD5
                     $user->password = Hash::make($request->password); // Convert to new format
@@ -444,6 +447,17 @@ class UserAuthController extends Controller
                 }
             }
         } else {
+            $userDetails = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
+                ->where('bfsi_user.login_id', $request->login_id)
+                ->get(['bfsi_user.pk_user_id', 'bfsi_user.login_id', 'bfsi_users_details.cust_name'])->first();
+            \Log::channel('logindata')->info(json_encode([
+                'user' => $userDetails, 
+                'ip' => $request->ip(), 
+                'device' => Agent::device(), 
+                'browser' => Agent::browser(),
+                "version" => Agent::version(Agent::browser()), 
+                'function' => "login"
+            ]));
             return $this->createNewToken($token);
             // return response()->json(['error' => 'Unauthorized'], 401);
         }
@@ -1295,5 +1309,27 @@ class UserAuthController extends Controller
         } catch(Exception $e) {
             return $e;
         }
+    }
+
+    public function interestedForm(Request $request) {
+        $inv = new Invest_Interest();
+        $inv->cust_name = $request->formname;
+        $inv->email = $request->formemail;
+        $inv->contact_no = $request->formnumber;
+        $inv->interestOn = $request->formmessage;
+        $inv_infoSave = $inv->save();
+        if($inv_infoSave) {
+            $res2 = (new EmailController)->send_contact_success($request->formemail, $request->formname, $request->formmessage) ;
+            $data = [
+                "statusCode" => 201,
+                "data" => $inv_infoSave
+            ];
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Submission failed, please try again"
+            ];
+        }
+        return $data;
     }
 }

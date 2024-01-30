@@ -2,7 +2,7 @@
 setTimeout(function(){
         (function($) {
             "use strict";
-            // insuranceData();
+            insuranceData();
             // createNoty('Hi! This is my message', 'info');
             // createNoty('success', 'success');
             // createNoty('warning', 'warning');
@@ -420,6 +420,7 @@ setTimeout(function(){
             $('#ins_policy_money_back_group').hide();
         }
         function insuranceData() {
+            var oTable;
             $.ajax({
                 url: "api_insurance",
                 type: "GET",
@@ -436,7 +437,7 @@ setTimeout(function(){
                         "lengthChange": false, 
                         "autoWidth": true,
                         "scrollX": true,
-                        "buttons": ["copy", "csv", "excel", "pdf", "print"],
+                        "buttons": buttons,
                         "data" : response,
                         "columns" : [
                             { data : null, render: function (data, type, row) { return row.ins_prod_type; } }, 
@@ -464,45 +465,29 @@ setTimeout(function(){
                                             temp = "<a href='https://admin.optymoney.com/itr/getfile/"+row.ins_cust_id+"/insurance/"+row.ins_policy_document+"'>"+row.ins_policy_document+"</a>";
                                             temp1 = "<p style='margin: 0rem;'>"+row.ins_policy_document+"</p>";
                                         }
-                                        var ulevel = atob((CryptoJS.AES.decrypt(sessionStorage.getItem("user_level"),"/")).toString(CryptoJS.enc.Utf8));
-                                        if(ulevel=="superadmin") {
-                                            return temp;
-                                        } else {
-                                            if(ulevel=="admin") {
-                                                return temp;
-                                            } else {
-                                                if(ulevel=="manager") {
-                                                    return temp;
-                                                } else {
-                                                    if(ulevel=="operation") {
-                                                        return temp1;
-                                                    } else {
-                                                        return '';
-                                                    }
-                                                }  
-                                            }    
-                                        }
+                                        return temp;
+                                        // return temp1;
                                     }
                                 }
                             }, 
                             { data : null, render: function (data, type, row) { 
-                                var ulevel = atob((CryptoJS.AES.decrypt(sessionStorage.getItem("user_level"),"/")).toString(CryptoJS.enc.Utf8));
-                                if(ulevel=="superadmin") {
-                                    return '<div class="btn-group"> <button type="button" class="btn btn-warning insEdit" data-id="' + row.ins_id + '"><i class="fas fa-edit"></i></button><button type="button" class="btn btn-danger insDelete" data-id="' + row.ins_id + '"><i class="fas fa-trash"></i></button> </div>'; 
+                                var viewDiv = '<div class="m-b-30"><div class="btn-group" role="group" aria-label="Button group with nested dropdown"><div class="btn-group" role="group"><button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button><div class="dropdown-menu" aria-labelledby="btnGroupDrop1">';
+                                // if(viewOption) {
+                                //     viewDiv = viewDiv+'<a href="clientCard/'+row.fr_user_id+'/view" class="dropdown-item">View</a>';
+                                // }
+                                if(editOption) {
+                                    viewDiv = viewDiv+'<a href="" class="dropdown-item insEdit" data-id="' + row.ins_id + '">Edit</a>';
+                                    // viewDiv = viewDiv+'<button type="button" class="btn btn-warning insEdit" data-id="' + row.ins_id + '">Edit</button>';
+                                }
+                                if(deleteOption) {
+                                    viewDiv = viewDiv+'<a href="" class="dropdown-item insDelete" data-id="' + row.ins_id + '">Delete</a>';
+                                    // viewDiv = viewDiv+'<button type="button" class="btn btn-danger insDelete" data-id="' + row.ins_id + '">Delete</button>';
+                                }
+                                viewDiv = viewDiv+'</div></div></div></div>';
+                                if(viewOption == false && editOption == false) {
+                                    return ""; 
                                 } else {
-                                    if(ulevel=="admin") {
-                                        return '<div class="btn-group"> <button type="button" class="btn btn-warning insEdit" data-id="' + row.ins_id + '"><i class="fas fa-edit"></i></button><button type="button" class="btn btn-danger insDelete" data-id="' + row.ins_id + '"><i class="fas fa-trash"></i></button> </div>'; 
-                                    } else {
-                                        if(ulevel=="manager") {
-                                            return '<div class="btn-group"> <button type="button" class="btn btn-warning insEdit" data-id="' + row.ins_id + '"><i class="fas fa-edit"></i></button></div>'; 
-                                        } else {
-                                            if(ulevel=="operation") {
-                                                return '';
-                                            } else {
-                                                return '';
-                                            }
-                                        }  
-                                    }    
+                                    return viewDiv; 
                                 }
                             }
                         }],

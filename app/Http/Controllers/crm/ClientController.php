@@ -33,7 +33,7 @@ class ClientController extends Controller
     }
 
     public function investmentInterestData(Request $request) {
-        $invInsData = Invest_Interest::get()->sortByDesc("id");
+        $invInsData = Invest_Interest::orderBy('id', 'DESC')->get();
         return $invInsData;
     }
 

@@ -28,7 +28,7 @@
 			<div class="card">
 				<div class="card-body">
 					<div class="dt-ext table-responsive">
-						<div class="modal fade" id="faqForm_modal" tabindex="-1" role="dialog" aria-labelledby="faqForm_modal" aria-hidden="true">
+						<div class="modal fade" id="newForm" tabindex="-1" role="dialog" aria-labelledby="newForm" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered modal-xl" role="document">
 								<div class="modal-content">
 									<form class="needs-validation" novalidate="" name="addfaq" id="addfaq" method="POST" enctype="multipart/form-data">

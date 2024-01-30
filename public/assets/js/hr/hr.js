@@ -15,7 +15,13 @@ setTimeout(function(){
                     } );
                 }
             }
-
+            if(jQuery.inArray("create", menuRole) != -1) {
+                $('#newFormButton').show();
+            } else {
+                $('#newFormButton').hide();
+            }
+            rolesData();
+            getEmployeesData();
             $('#newEmployeeForm').submit(function (e) {
                 var formData = new FormData($(this)[0]);
                 e.preventDefault();
@@ -30,6 +36,8 @@ setTimeout(function(){
                         if(response==1) {
                             $('#exampleModalCenter').hide();
                             $('#newEmployeeForm')[0].reset();
+                            $('#newForm').modal('hide');
+                            getEmployeesData();
                             createNoty('Employee Created Successfully', 'success');
                         } else {
                             createNoty('Employee Creation Failed', 'danger');
@@ -210,5 +218,84 @@ setTimeout(function(){
             });
 
         })(jQuery);
+
+        function rolesData() {
+            $.ajax({
+                url: "https://admin.optymoney.com/hr/getEmployeeRoles",
+                type: "GET",
+                success: function(response) {
+                    $('#role').empty();
+                    var select = document.getElementById("role");
+                    var option = document.createElement("option");
+                    option.text = "Select Role";
+                    option.value = "";
+                    select.add(option);
+                    response.forEach(function(item) {
+                        var option = document.createElement("option");
+                        option.text = item.roleName;
+                        option.value = item.id;
+                        select.add(option);
+                    });
+                }
+            });
+        }
+
+        function getEmployeesData() {
+            $.ajax({
+                url: "/hr/empCardsData",
+                type: "GET",
+                beforeSend: function() {
+                    $(".loader-wrapper").show();
+                },
+                complete: function(){
+                    $(".loader-wrapper").hide();
+                },
+                success: function(response) {
+                    console.log(response);
+                    $('#export-button').DataTable().destroy();
+                    oTable = $('#export-button').DataTable({
+                        "paging": true,
+                        "searching": true,
+                        "info": true,
+                        "responsive": true, 
+                        "lengthChange": false, 
+                        "autoWidth": true,
+                        "scrollX": true,
+                        "buttons": buttons,
+                        dom: 'Bfrtip',
+                        order: false,
+                        "data" : response,
+                        "columns" : [
+                            { data : null, render: function (data, type, row) { return row.emp_no; } }, 
+                            { data : null, render: function (data, type, row) { return row.full_name; } }, 
+                            { data : null, render: function (data, type, row) { return row.designation; } }, 
+                            { data : null, render: function (data, type, row) { return row.department; } }, 
+                            { data : null, render: function (data, type, row) { return row.doj; } }, 
+                            { data : null, render: function (data, type, row) { return row.dob; } }, 
+                            { data : null, render: function (data, type, row) { return row.personal_mobile; } }, 
+                            { data : null, render: function (data, type,row) { 
+                                var viewDiv = '<div class="m-b-30"><div class="btn-group" role="group" aria-label="Button group with nested dropdown"><div class="btn-group" role="group"><button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button><div class="dropdown-menu" aria-labelledby="btnGroupDrop1">';
+                                if(viewOption) {
+                                    viewDiv = viewDiv+'<a href="hr/empCard'+row.pk_emp_id+'/view" class="dropdown-item">View</a>';
+                                }
+                                if(editOption) {
+                                    viewDiv = viewDiv+'<a href="hr/empCard/"'+row.pk_emp_id+'/edit" class="dropdown-item">Edit</a>';
+                                }
+                                viewDiv = viewDiv+'</div></div></div></div>';
+                                if(viewOption == false && editOption == false) {
+                                    return ""; 
+                                } else {
+                                    return viewDiv; 
+                                }
+                            }
+                            // <a href="clientCard/'+row.fr_user_id+'/edit" class="dropdown-item">Edit</a><a href="clientCard/'+row.fr_user_id+'/edit" class="dropdown-item">Delete</a>
+                        }],
+                        "fnInitComplete": function() { $("#export-button").css("width","100%"); }
+                    }).buttons().container().appendTo('#export-button_wrapper .col-md-6:eq(0)');
+                    oTable = $('#export-button').DataTable();
+                    // <button type="button" class="btn btn-info insView" data-id="' + row.ins_id + '"><i class="fas fa-eye"></i></button>
+                }
+            });
+        }   
     }
 ,350);

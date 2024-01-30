@@ -71,7 +71,7 @@ class AugmontController extends Controller
                 ]
             ]);
             $tokenRes = json_decode($res->getBody()->getContents());
-            \Log::channel('itsolution')->error("generateToken : ".$tokenRes);
+            \Log::channel('itsolution')->info("generateToken : ".json_encode($tokenRes));
             if($tokenRes->statusCode==401) {
                 // $orderData['tokenStatus'] = $tokenRes->message;
                 return $tokenRes->statusCode;
@@ -142,6 +142,47 @@ class AugmontController extends Controller
             ->sortByDesc("pk_user_id");
         $data1['orders'] = $data;
         $data1['clients'] = $clientData;
+        return $data1;
+    }
+
+    public function getOrdersFilter(Request $request) {
+        $startDate = Carbon::createFromFormat('d/m/Y', $request->startDate);
+        $endDate = Carbon::createFromFormat('d/m/Y', $request->endDate);
+        if($request->customer == '') {
+            $data = AugmontOrders::whereDate('created_at', '>=', $startDate)
+                ->whereDate('created_at', '<=', $endDate)->orderBy('id', 'DESC')->get(); 
+        } else {
+            $data = AugmontOrders::whereDate('created_at', '>=', $startDate)
+                ->whereDate('created_at', '<=', $endDate)->where('user_id', $request->customer)->orderBy('id', 'DESC')->get(); 
+        }
+        $data1['orders'] = $data;
+        return $data1;
+    }
+
+    public function allClientsSummary(Request $request) {
+        $data = AugmontOrders::orderBy('id', 'DESC')->groupBy("user_id")->get(['user_id']); 
+        $d = [];
+        foreach($data as $item) {
+            $bal = $this->api_metalCount_by_id($item->user_id);
+            if($bal['goldBalance'] >0 || $bal['silverBalance'] >0) {
+                $userData = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
+                    ->where('bfsi_user.pk_user_id', $item->user_id)
+                    ->get([
+                        'bfsi_user.augid', 
+                        'bfsi_user.login_id', 
+                        'bfsi_users_details.contact_no',
+                        'bfsi_users_details.cust_name'])->first();
+                $bal["user_id"] = $item->user_id;
+                $bal['username'] = $userData->cust_name;
+                $bal['contact'] = $userData->contact_no;
+                $bal['email'] = $userData->login_id;
+                $d[] = $bal;
+            }
+        }
+        // $data = AugmontOrders::orwhere('goldbalance', '>', 0)
+        // ->orWhere('silverbalance', '>', 0)->orderBy('id', 'DESC')->groupBy("user_id")->get(['user_id', 'goldbalance', 'silverbalance']); 
+        $data1['orders'] = $d;
+        $data1['passbook'] = $this->getAugmontPassbook();
         return $data1;
     }
 
@@ -219,8 +260,64 @@ class AugmontController extends Controller
         return $availCount;
     }
 
-    public function clientRequests($method, $url, $data) {
+    public function api_metalCount_by_id($id) {
+        $availCount = AugmontOrders::where(['user_id' => $id])->whereNotNull('transactionId')->orderBy("created_at", "desc")->get(['goldBalance','silverBalance'])->first();
+        if ($availCount === null) {
+            $availCount = array('goldBalance' => 0, 'silverBalance' => 0);
+        }
+        $availSilverSell = AugmontOrders::where(['user_id' => $id])
+            ->where('updated_at', '<=', Carbon::now()->subDays(2)->toDateTimeString())
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'silver')
+            ->sum('quantity');
+        $availGoldSell = AugmontOrders::where(['user_id' => $id])
+            ->where('updated_at', '<=', Carbon::now()->subDays(2)->toDateTimeString())
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'gold')
+            ->sum('quantity');
+        $silverSold = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('transactionId')
+            ->where('metalType', '=', 'silver')
+            ->where('ordertype', '=', 'Sell')
+            ->sum('quantity');
+        $goldSold = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('transactionId')
+            ->where('metalType', '=', 'gold')
+            ->where('ordertype', '=', 'Sell')
+            ->sum('quantity');
+        $silverBuy = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'silver')
+            ->where('ordertype', '=', 'Buy')
+            ->sum('totalAmount');
+        $silverSell = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('transactionId')
+            ->where('metalType', '=', 'silver')
+            ->where('ordertype', '=', 'sell')
+            ->sum('totalAmount');
+        $goldBuy = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('invoiceNumber')
+            ->where('metalType', '=', 'gold')
+            ->where('ordertype', '=', 'Buy')
+            ->sum('totalAmount');
+        $goldSell = AugmontOrders::where(['user_id' => $id])
+            ->whereNotNull('transactionId')
+            ->where('metalType', '=', 'gold')
+            ->where('ordertype', '=', 'sell')
+            ->sum('totalAmount');
+        $availCount['availGoldSell'] = $availGoldSell - $goldSold;;
+        $availCount['availSilverSell'] = $availSilverSell - $silverSold;
+        $availCount['goldBalance'] = $availCount['goldBalance'];
+        $availCount['silverBalance'] = $availCount['silverBalance'];
+        $availCount['silverBuy'] = $silverBuy;
+        $availCount['silverSell'] = $silverSell;
+        $availCount['goldBuy'] = $goldBuy;
+        $availCount['goldSell'] = $goldSell;
 
+        return $availCount;
+    }
+
+    public function clientRequests($method, $url, $data) {
         $tokentype = "Bearer ";
         $authToken = $tokentype.(new AugmontController)->merchantAuth();
 
@@ -260,7 +357,6 @@ class AugmontController extends Controller
                 }
             }
         }
-        
     }
 
     public function clientFileUploadRequests($query, $multipart, $url) {
@@ -290,7 +386,6 @@ class AugmontController extends Controller
             return json_decode($responseBody->getBody()->getContents()); 
         }
     }
-
 
     public function clientURLRequests($method, $url, $data) {
 
@@ -426,5 +521,20 @@ class AugmontController extends Controller
             return $data;
         }
         
+    }
+
+    public function getAugmontPassbook() {
+        $tokentype = "Bearer ";
+        $authToken = $tokentype.(new AugmontController)->merchantAuth();
+        // return $authToken;
+        if($authToken==401) {
+            return 401;
+            // return json_encode({
+            //     "statusCode": 401,
+            //     "message": "You are not authrorized to perform this request."
+            //   });
+        } else {
+            return json_encode((new AugmontController)->clientRequests('GET', 'merchant/v1/users/Augo3904/passbook', ''));
+        }
     }
 }

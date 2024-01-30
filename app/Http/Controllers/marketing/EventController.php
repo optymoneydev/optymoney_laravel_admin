@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use GuzzleHttp\Client;
 Use App\Models\Events;
 Use App\Models\EventUsers;
+Use App\Models\EventUsersFeedback;
 Use App\Models\Bfsi_user;
 Use App\Models\Bfsi_users_detail;
 use Illuminate\Support\Facades\Hash;
@@ -57,7 +58,7 @@ class EventController extends Controller
         $event->meta_description = $request['meta_description'];
         $event->bm_content = $request['bm_content'];
         $event->event_img_code = $request['event_img_code'];
-        $event->bm_subject = $request['bm_subject'];
+        $event->event_subject = $request['event_subject'];
         
         $saveevent = $event->save();
         if($saveevent==1) {
@@ -183,6 +184,91 @@ class EventController extends Controller
             $data = [
                 'status_code' => 201,
                 'message' => 'Registered to this event.'
+            ];
+        }
+        return $data;
+    }
+
+    public function eventFeedback(Request $request) {
+        $eventReg = new EventUsersFeedback();
+        $eventData = Events::where('event_code', '=', $request->url)->get()->first();
+
+        $user = Bfsi_user::where([
+            'login_id' => $request->formemail
+        ])->first();
+        if($user) {
+            $eventCheck = EventUsersFeedback::where([
+                'user_id' => $user->pk_user_id,
+                'event_p_code' => $request->url
+            ])->first();
+            if($eventCheck) {
+                $data = [
+                    'status_code' => 201,
+                    'message' => 'Already submitted the feedback to this event.'
+                ];
+            } else {
+                $eventReg->user_id = $user->pk_user_id;
+                $eventReg->event_p_code = $request->url;
+                $eventReg->user_org = $request->formorg;
+                $eventReg->save();
+
+                $userData = (new UsersController)->getUserDataByUID($user->pk_user_id);
+                $res2 = (new EmailController)->send_event_feedback_status($userData, $eventData);
+                $data = [
+                    'status_code' => 201,
+                    'message' => 'Feedback submitted to this event.'
+                ];
+            }
+        } else {
+            $pswd = str_random(8);
+            $createAccountStatus = Bfsi_user::create([
+                'login_id' => $request->formemail,
+                'password' => "abcdef",
+                'aug_pswd' => Hash::make($pswd),
+                'communication_email' => "Permanent",
+                'user_status' => "Active",
+                'signup_ip' => getenv('REMOTE_ADDR'),
+                'signup_date' => \Carbon\Carbon::now()->timestamp,
+                'contact' => $request->formnumber,
+                'created_from' => "Event - ".$request->url
+            ])->pk_user_id;
+            $userStatus = \App\Models\Bfsi_user::where('pk_user_id', $createAccountStatus)->update([
+                'password' => Hash::make($pswd),
+                'aug_pswd' => Hash::make($pswd)
+            ]);
+            $updateUserDetails = Bfsi_users_detail::create([
+                'fr_user_id' => $createAccountStatus,
+                'cust_name' => $request->formname,
+                'contact_no' => $request->formnumber
+              ]);
+              $eventCheck = EventUsersFeedback::where([
+                'user_id' => $createAccountStatus,
+                'event_p_code' => $request->url
+            ])->first();
+            if($eventCheck) {
+                $data = [
+                    'status_code' => 201,
+                    'message' => 'Already submitted the feedback to this event.'
+                ];
+            } else {
+                $eventReg->user_id = $createAccountStatus;
+                $eventReg->event_p_code = $request->url;
+                $eventReg->user_org = $request->formorg;
+                $eventReg->save();
+
+                $userData = (new UsersController)->getUserDataByUID($createAccountStatus);
+                $res2 = (new EmailController)->send_event_feedback_status($userData, $eventData);
+                $data = [
+                    'status_code' => 201,
+                    'message' => 'Feedback submitted to this event.'
+                ];
+            }
+            $userData = (new UsersController)->getUserDataByUID($createAccountStatus);
+            $res2 = (new EmailController)->send_user_creation_email_from_event($userData, $pswd);
+            $res2 = (new EmailController)->send_event_feedback_status($userData, $eventData);
+            $data = [
+                'status_code' => 201,
+                'message' => 'Feedback submitted to this event.'
             ];
         }
         return $data;

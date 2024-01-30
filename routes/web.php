@@ -8,6 +8,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Session;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Employee\EmployeeController;
+use App\Http\Controllers\Employee\EmployeeMngtController;
 use App\Http\Controllers\crm\ClientController;
 use App\Http\Controllers\itr\ITRController;
 use App\Http\Controllers\insurance\InsuranceController;
@@ -47,6 +48,7 @@ use App\Http\Controllers\ContactusController;
 use App\Http\Controllers\EmailController;
 use App\Http\Controllers\Nsdl\SignzyController;
 use App\Http\Controllers\GeneralController;
+use App\Http\Controllers\logs\LogsController;
 use App\Mail\TestAmazonSes;
 
 
@@ -68,18 +70,28 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         Route::post('addEmpCustMap', [EmployeeController::class, 'addEmpCustMap'])->name('addEmpCustMap');
 
 
-        Route::get('empCards', [EmployeeController::class, 'getEmpCards'])->name('empCards'); 
+        Route::get('empCardsData', [EmployeeController::class, 'getEmpCards'])->name('empCardsData'); 
 
         Route::get('empCustCards', [EmployeeController::class, 'getEmpClientCards'])->name('empCustCards');
         Route::view('emp-cust-cards', 'hr.emp-cust-cards')->name('emp-cust-cards');
 
-        Route::view('employee-cards', 'hr.employee-cards')->name('employee-cards');
+        Route::view('empCards', 'hr.employee-cards')->name('empCards');
 
         Route::get('empCard/{id}/view', [EmployeeController::class, 'getEmpCard'])->name('empCard'); 
         Route::view('employee-profile', 'hr.employee-profile')->name('employee-profile');
 
         Route::get('empCard/{id}/edit', [EmployeeController::class, 'getEmpCardEdit'])->name('empCardEdit'); 
         Route::view('employee-edit-profile', 'hr.employee-edit-profile')->name('employee-edit-profile');
+
+        Route::view('roles', 'usrmngt.roles')->name('roles');
+        Route::view('permissions', 'usrmngt.permissions')->name('permissions');
+
+        Route::get('getEmployeeRoles', [EmployeeMngtController::class, 'getEmployeeRoles'])->name('getEmployeeRoles'); 
+        Route::post('saveUserRoles', [EmployeeMngtController::class, 'saveUserRoles'])->name('saveUserRoles'); 
+        Route::post('deleteRole', [EmployeeMngtController::class, 'deleteRole'])->name('deleteRole'); 
+        Route::post('roleById', [EmployeeMngtController::class, 'roleById'])->name('roleById'); 
+
+        Route::get('getEmployeeRole', [EmployeeMngtController::class, 'getEmployeeRole'])->name('hr.getEmployeeRole');
     });
 
     Route::prefix('crm')->group(function () {
@@ -97,6 +109,12 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         Route::get('investmentInterestData', [ClientController::class, 'investmentInterestData'])->name('investmentInterestData'); 
         
         Route::get('createAugmontAccount/{id}', [UserAugmontController::class, 'createManualAugmontAccount'])->name('createManualAugmontAccount'); 
+
+        Route::get('showLoginLog', [LogsController::class, 'showLoginLog'])->name('showLoginLog'); 
+        Route::post('showLoginLogByDates', [LogsController::class, 'showLoginLogByDates'])->name('showLoginLogByDates'); 
+
+        Route::get('showLoginLogCount', [LogsController::class, 'showLoginLogCount'])->name('showLoginLogCount'); 
+        Route::view('logRecords', 'crm.logRecords')->name('logRecords');
     });
 
     Route::prefix('itr')->group(function () {
@@ -200,11 +218,20 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         
     });
 
-    Route::get('insurance', [InsuranceController::class, 'getInsurance'])->name('insurance'); 
-    Route::get('api_insurance', [InsuranceController::class, 'getInsuranceAPI'])->name('api_insurance'); 
-    Route::view('insurance-cards', 'insurance.insurance-cards')->name('insurance-cards');
-    Route::post('saveInsurance', [InsuranceController::class, 'insuranceUpload'])->name('saveInsurance');
-    Route::post('insuranceById', [InsuranceController::class, 'insuranceById'])->name('insuranceById'); 
+    Route::prefix('otherInvestments')->group(function () {
+        Route::get('insurance', [InsuranceController::class, 'getInsurance'])->name('insurance'); 
+        Route::get('api_insurance', [InsuranceController::class, 'getInsuranceAPI'])->name('api_insurance'); 
+        Route::view('insurance-cards', 'insurance.insurance-cards')->name('insurance-cards');
+        Route::post('saveInsurance', [InsuranceController::class, 'insuranceUpload'])->name('saveInsurance');
+        Route::post('insuranceById', [InsuranceController::class, 'insuranceById'])->name('insuranceById');     
+
+        Route::get('pms', [PMSController::class, 'getPMS'])->name('pms'); 
+        Route::get('api_pms', [PMSController::class, 'getPmsAPI'])->name('api_pms'); 
+        Route::view('pms-cards', 'pms.pms-cards')->name('pms-cards');
+        Route::post('savePMS', [PMSController::class, 'pmsUpload'])->name('savePMS');
+        Route::post('pmsById', [PMSController::class, 'pmsById'])->name('pmsById'); 
+    });
+    
 
     Route::prefix('insurance')->group(function () {
         Route::get('getInsuranceByUser/{id}', [InsuranceController::class, 'getInsuranceByUser'])->name('getInsuranceByUser'); 
@@ -219,11 +246,7 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         Route::get('getPmsByUser/{id}', [PMSController::class, 'getPmsByUser'])->name('getPmsByUser'); 
     });
 
-    Route::get('pms', [PMSController::class, 'getPMS'])->name('pms'); 
-    Route::get('api_pms', [PMSController::class, 'getPmsAPI'])->name('api_pms'); 
-    Route::view('pms-cards', 'pms.pms-cards')->name('pms-cards');
-    Route::post('savePMS', [PMSController::class, 'pmsUpload'])->name('savePMS');
-    Route::post('pmsById', [PMSController::class, 'pmsById'])->name('pmsById'); 
+    
     
     Route::get('getExpertAssistance', [EAController::class, 'getExpertAssistance'])->name('getExpertAssistance'); 
     Route::view('expertAssistance', 'expertAssistance.expertAssistance-cards')->name('expertAssistance');
@@ -279,6 +302,9 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         
         Route::get('orders', [AugmontController::class, 'orders'])->name('augmont.orders'); 
         Route::get('allOrders', [AugmontController::class, 'allOrders'])->name('augmont.allOrders'); 
+
+        Route::post('getOrdersFilter', [AugmontController::class, 'getOrdersFilter'])->name('augmont.getOrdersFilter'); 
+        Route::get('allClientsSummary', [AugmontController::class, 'allClientsSummary'])->name('augmont.allClientsSummary'); 
 
         Route::get('OrdersById/{id}', [OrdersAugmontController::class, 'OrdersById'])->name('augmont.OrdersById'); 
         Route::get('OrdersByUsers/{id}', [OrdersAugmontController::class, 'OrdersByUsers'])->name('augmont.OrdersByUsers'); 

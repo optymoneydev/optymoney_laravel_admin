@@ -61,6 +61,8 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
         Route::post('validatePanAadhaarAPI', [UserAuthController::class, 'validatePanAadhaarAPI']);
         Route::post('finishSignupAPI', [UserAuthController::class, 'finishSignupAPI']);
 
+        Route::post('interestedForm', [UserAuthController::class, 'interestedForm']);
+
         Route::post('getCity', [AugmontController::class, 'getCity']); 
         
 
@@ -103,6 +105,8 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
                 Route::get('/getAugOrdersByUserAPI1', [OrdersAugmontController::class, 'getAugOrdersByUserAPI']); 
                 Route::get('/getMetalCountAPI1', [AugmontController::class, 'getMetalCountAPI']); 
                 Route::post('silverBuy', [BuyAugmontController::class, 'buyAugmont'])->name('augmont.buyAugmont');
+                Route::post('createOrder', [BuyAugmontController::class, 'createOrder'])->name('augmont.createOrder');
+                Route::post('saveOrder', [BuyAugmontController::class, 'saveOrder'])->name('augmont.saveOrder');
             });
         });
     });
@@ -116,6 +120,7 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
     Route::prefix('marketing')->group(function () {
         Route::post('eventByCode', [EventController::class, 'eventByCode'])->name('eventByCode');
         Route::post('eventReg', [EventController::class, 'eventReg'])->name('eventReg');
+        Route::post('eventFeedback', [EventController::class, 'eventFeedback'])->name('eventFeedback');
     });
 
     Route::prefix('blog')->group(function () {

@@ -65,8 +65,9 @@ setTimeout(function(){
                 },
                 success: function(response) {
                     console.log(response);
-                    $('#export-button').DataTable().destroy();
-                    oTable = $('#export-button').DataTable({
+                    // $('#investInterestTable').DataTable().clear().draw();
+                    // $('#export-button').DataTable().destroy();
+                    oTable = $('#investInterestTable').DataTable({
                         "paging": true,
                         "searching": true,
                         "info": true,
@@ -74,31 +75,32 @@ setTimeout(function(){
                         "lengthChange": false, 
                         "autoWidth": true,
                         "scrollX": true,
-                        "buttons": [
+                        dom: 'Bfrtip',
+                        order: false,
+                        buttons: [
                             'copyHtml5',
                             'excelHtml5',
                             'csvHtml5',
                             'pdfHtml5'
                         ],
-                        dom: 'Bfrtip',
                         "data" : response,
                         "columns" : [
                             { data : null, render: function (data, type, row) { return row.cust_name; } }, 
                             { data : null, render: function (data, type, row) { return row.email; } }, 
                             { data : null, render: function (data, type, row) { return row.contact_no; } }, 
                             { data : null, render: function (data, type, row) { return row.interestOn; } }, 
-                            { data : "created_date", render: function (data, type, row, meta) { 
+                            { data : "created_at", render: function (data, type, row, meta) { 
                                 if (type === "sort" || type === 'type') {
                                     return data;
                                 }
                                 if (type === "display") {
-                                    return formatOnlyDate(new Date(data));
+                                    return formatOnlyDate(new Date(row.created_at));
                                 }
                                 return data;
                             } },
                         ],
-                        "fnInitComplete": function() { $("#export-button").css("width","100%"); }
-                    }).buttons().container().appendTo('#export-button_wrapper .col-md-6:eq(0)');
+                        "fnInitComplete": function() { $("#investInterestTable").css("width","100%"); }
+                    }).buttons().container().appendTo('#investInterestTable_wrapper .col-md-6:eq(0)');
                     oTable = $('#export-button').DataTable();
                     // <button type="button" class="btn btn-info insView" data-id="' + row.ins_id + '"><i class="fas fa-eye"></i></button>
                 }

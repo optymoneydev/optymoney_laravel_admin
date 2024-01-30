@@ -11,7 +11,6 @@
 
 @section('breadcrumb-title')
 <h3>Employee Cards</h3>
-<button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#exampleModalCenter">New</button>
 @endsection
 
 @section('breadcrumb-items')
@@ -23,7 +22,7 @@
 <div id="noty-holder"></div>
 <div class="container-fluid">
 	<!-- Vertically centered modal-->
-	<div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenter" aria-hidden="true">
+	<div class="modal fade" id="newForm" tabindex="-1" role="dialog" aria-labelledby="newForm" aria-hidden="true">
 		<div class="modal-dialog modal-dialog-centered" role="document">
 			<div class="modal-content">
 				<form class="needs-validation" novalidate="" id="newEmployeeForm" method="POST" enctype="multipart/form-data">
@@ -96,32 +95,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach ($articles as $article)
-								<tr>
-									<td>{{ $article['emp_no'] }}</td>
-									<td>{{ ucfirst($article['full_name']) }}</td>
-									<td>{{ ucfirst($article['designation']) }}</td>
-									<td>{{ ucfirst($article['department']) }}</td>
-									<td>{{ ucfirst($article['doj']) }}</td>
-									<td>{{ ucfirst($article['dob']) }}</td>
-									<td>{{ $article['personal_mobile'] }}</td>
-									<td>
-										<div class="m-b-30">
-											<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-												<div class="btn-group" role="group">
-													<button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button>
-													<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-														<a href="{{ url('hr/empCard/' . $article['pk_emp_id'] . '/view') }}" class="dropdown-item">View</a>
-														<a href="{{ url('hr/empCard/' . $article['pk_emp_id'] . '/edit') }}" class="dropdown-item">Edit</a>
-													</div>
-												</div>
-											</div>
-										</div>
-									</td>
-								</tr>
-								@endforeach
 							</tbody>
-							
 						</table>
 					</div>
 				</div>

@@ -16,6 +16,7 @@ use App\Http\Controllers\Nsdl\NsdlController;
 use App\Http\Controllers\Augmont\User\UserAugmontController;
 use App\Http\Controllers\Users\UsersController;
 use App\Http\Controllers\KycController;
+use App\Http\Controllers\Employee\EmployeeMngtController;
 
 use Session;
 
@@ -44,7 +45,7 @@ class AuthController extends Controller {
         ])->first();
         if(isset($user)) {
           if($user['aug_pswd']==NULL || $user['aug_pswd']==""){
-            if($user->passwd == md5($request->password)) { // If their password is still MD5
+            if($user->passwd == md5($request->password)) { 
               $upstatus = Bfsi_admin_user::where('pk_admin_user_id', $user['pk_admin_user_id'])->update([
                 'passwd' => Hash::make($request->password)
               ]);
@@ -60,16 +61,13 @@ class AuthController extends Controller {
               }
             }
           } else {
-            // dd($user);
             if (Auth::attempt($credentials)) {
               $user1 = Auth::user();
               Session::put('id', $user['pk_admin_user_id']);
               Session::put('custname', $user['cust_name']);
               $request->session()->put('LoggedUser', $user['pk_admin_user_id']);
               return redirect()->intended('dashboard/index');
-              // dd($user1->pk_user_id);
             } else {
-              // dd("not authenticated");
               error_log('Authentication failed...');
               return Redirect::to("authentication/login")->withSuccess('Opps! You have entered invalid credentials');
             }
@@ -80,9 +78,13 @@ class AuthController extends Controller {
             Session::put('id', $user1['emp_no']);
             Session::put('emp_name', $user1['full_name']);
             Session::put('emp', $user1);
+            $roles = (new EmployeeMngtController)->getEmployeeRoleInternal($user1['emp_no']);
+            Session::put('rolename', $roles->roleName);
+            // $rolesData = explode(',', $roles->roles);
+            
+            // Session::put('emprole', $roles->roles);
             $request->session()->put('LoggedUser', $user1['pk_emp_id']);
             return View::make('dashboard/index')->with('userInfo',$user1);
-            // return redirect()->intended('dashboard/index');
           } else {
             error_log('Authentication failed...');
             return Redirect::to("authentication/login")->withSuccess('Opps! You have entered invalid credentials');

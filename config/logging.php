@@ -118,6 +118,11 @@ return [
             'path' => storage_path('logs/exceptions.log'),
             'level' => 'info',
         ],
+        'logindata' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/userlogindata.log'),
+            'level' => 'debug',
+        ],
     ],
 
 ];

@@ -19,9 +19,8 @@ use File;
 class EmployeeController extends Controller
 {
     public function getEmpCards(Request $request) {
-        $empData = Employee::all();
-        return View::make('hr.employee-cards', ['articles' => $empData]);
-        // return View::make('crm.client-cards', ['articles' => $empData]);
+        $empData = Employee::orderBy('pk_emp_id', 'DESC')->get();
+        return $empData;
     }
 
     public function getEmpClientCards(Request $request) {
@@ -47,7 +46,7 @@ class EmployeeController extends Controller
     }
 
     public function getEmpCardsObj() {
-        $empData = Employee::all();
+        $empData = Employee::orderBy('pk_emp_id', 'DESC')->all();
         return $empData;
     }
 
@@ -71,16 +70,6 @@ class EmployeeController extends Controller
         $emp->password = Hash::make($request->password);
         $emp->created_by = $id; 
         $saveEmp = $emp->save();
-
-        $emp = new Employee();
-        $emp->full_name = $request->full_name;
-        $emp->emp_no = $request->emp_no;
-        $emp->official_email = $request->official_email; 
-        $emp->official_mobile = $request->official_mobile;
-        $emp->password = Hash::make($request->password);
-        $emp->created_by = $id; 
-        $saveEmp = $emp->save();
-        
         return $saveEmp;
     }
 

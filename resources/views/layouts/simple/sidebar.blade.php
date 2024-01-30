@@ -14,14 +14,8 @@
 						<a href="{{route('/')}}"><img class="img-fluid" src="{{asset('assets/images/logo/logo-icon.png')}}" alt=""></a>
 						<div class="mobile-back text-end"><span>Back</span><i class="fa fa-angle-right ps-2" aria-hidden="true"></i></div>
 					</li>
-					<li class="sidebar-main-title">
-						<div>
-							<h6 class="lan-1">{{ trans('lang.General') }} </h6>
-                     		<p class="lan-2">{{ trans('lang.Dashboards,widgets & layout.') }}</p>
-						</div>
-					</li>
 					<li class="sidebar-list">
-						<label class="badge badge-success">2</label><a class="sidebar-link sidebar-title {{request()->route()->getPrefix() == '/dashboard' ? 'active' : '' }}" href="#"><i data-feather="home"></i><span class="lan-3">{{ trans('lang.Dashboards') }}</span>
+						<a class="sidebar-link sidebar-title {{request()->route()->getPrefix() == '/dashboard' ? 'active' : '' }}" href="#"><i data-feather="home"></i><span class="lan-3">{{ trans('lang.Dashboards') }}</span>
 							<div class="according-menu"><i class="fa fa-angle-{{request()->route()->getPrefix() == '/dashboard' ? 'down' : 'right' }}"></i></div>
 						</a>
 						<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/dashboard' ? 'block;' : 'none;' }}">
@@ -35,12 +29,13 @@
 								<div class="according-menu"><i class="fa fa-angle-{{request()->route()->getPrefix() == '/hr' ? 'down' : 'right' }}"></i></div>
 							</a>
 							<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/hr' ? 'block;' : 'none;' }}">
+								<li><a class="lan-4 {{ Route::currentRouteName()=='roles' ? 'active' : '' }}" href="{{route('roles')}}">{{ trans('lang.roles') }}</a></li>
+								<li><a class="lan-4 {{ Route::currentRouteName()=='permissions' ? 'active' : '' }}" href="{{route('permissions')}}">{{ trans('lang.permissions') }}</a></li>
 								<li><a class="lan-4 {{ Route::currentRouteName()=='empCards' ? 'active' : '' }}" href="{{route('empCards')}}">{{ trans('lang.Employee') }}</a></li>
 								<li><a class="lan-4 {{ Route::currentRouteName()=='empCustCards' ? 'active' : '' }}" href="{{route('empCustCards')}}">{{ trans('lang.assign_client') }}</a></li>
 							</ul>
 						</li>
 					@endIf
-					
 					@if(Session::get('emp')->department=="marketing" || Session::get('emp')->department=="admin" || Session::get('emp')->department=="partner") 
 					<li class="sidebar-list">
 						<a class="sidebar-link sidebar-title {{request()->route()->getPrefix() == '/crm' ? 'active' : '' }}" href="#"><i data-feather="home"></i><span class="lan-3">{{ trans('lang.CRM') }}</span>
@@ -49,6 +44,7 @@
 						<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/crm' ? 'block;' : 'none;' }}">
 							<li><a class="lan-4 {{ Route::currentRouteName()=='clientsCards' ? 'active' : '' }}" href="{{route('clientsCards')}}">{{ trans('lang.Clients') }}</a></li>
 							<li><a class="lan-4 {{ Route::currentRouteName()=='investInterestCards' ? 'active' : '' }}" href="{{route('investInterestCards')}}">{{ trans('lang.InvestInterest') }}</a></li>
+							<li><a class="lan-4 {{ Route::currentRouteName()=='logRecords' ? 'active' : '' }}" href="{{route('logRecords')}}">{{ trans('lang.LogRecords') }}</a></li>
 						</ul>
 					</li>
 					@endIf
@@ -102,17 +98,13 @@
 
 					@if(Session::get('emp')->department=="marketing" || Session::get('emp')->department=="admin") 
 					<li class="sidebar-list">
-						<a class="sidebar-link sidebar-title link-nav {{ Route::currentRouteName()=='insurance' ? 'active' : '' }}" href="{{route('insurance')}}">
-							<i data-feather="git-pull-request"> </i><span>{{ trans('lang.insurance') }}</span>
+						<a class="sidebar-link sidebar-title {{request()->route()->getPrefix() == '/otherInvestments' ? 'active' : '' }}" href="#"><i data-feather="home"></i><span class="lan-3">{{ trans('lang.otherInvestments') }}</span>
+							<div class="according-menu"><i class="fa fa-angle-{{request()->route()->getPrefix() == '/otherInvestments' ? 'down' : 'right' }}"></i></div>
 						</a>
-					</li>
-					@endif
-
-					@if(Session::get('emp')->department=="marketing" || Session::get('emp')->department=="admin") 
-					<li class="sidebar-list">
-						<a class="sidebar-link sidebar-title link-nav {{ Route::currentRouteName()=='pms' ? 'active' : '' }}" href="{{route('pms')}}">
-							<i data-feather="git-pull-request"> </i><span>{{ trans('lang.pms') }}</span>
-						</a>
+						<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/otherInvestments' ? 'block;' : 'none;' }}">
+							<li><a class="lan-4 {{ Route::currentRouteName()=='insurance' ? 'active' : '' }}" href="{{route('insurance')}}"><span>{{ trans('lang.insurance') }}</span></a></li>
+							<li><a class="lan-4 {{ Route::currentRouteName()=='pms' ? 'active' : '' }}" href="{{route('pms')}}"><span>{{ trans('lang.pms') }}</span></a></li>
+						</ul>
 					</li>
 					@endif
 
@@ -148,17 +140,13 @@
 
 					@if(Session::get('emp')->department=="marketing" || Session::get('emp')->department=="admin") 
 					<li class="sidebar-list">
-						<a class="sidebar-link sidebar-title link-nav {{ Route::currentRouteName()=='expertAssistance' ? 'active' : '' }}" href="{{route('expertAssistance')}}">
-							<i data-feather="git-pull-request"> </i><span>{{ trans('lang.expertAssistance') }}</span>
+						<a class="sidebar-link sidebar-title {{request()->route()->getPrefix() == '/support' ? 'active' : '' }}" href="#"><i data-feather="home"></i><span class="lan-3">{{ trans('lang.support') }}</span>
+							<div class="according-menu"><i class="fa fa-angle-{{request()->route()->getPrefix() == '/support' ? 'down' : 'right' }}"></i></div>
 						</a>
-					</li>
-					@endif
-
-					@if(Session::get('emp')->department=="marketing" || Session::get('emp')->department=="admin") 
-					<li class="sidebar-list">
-						<a class="sidebar-link sidebar-title link-nav {{ Route::currentRouteName()=='subscription' ? 'active' : '' }}" href="{{route('subscription')}}">
-							<i data-feather="git-pull-request"> </i><span>{{ trans('lang.subscription') }}</span>
-						</a>
+						<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/support' ? 'block;' : 'none;' }}">
+							<li><a class="sidebar-link sidebar-title link-nav {{ Route::currentRouteName()=='expertAssistance' ? 'active' : '' }}" href="{{route('expertAssistance')}}"><i data-feather="git-pull-request"> </i><span>{{ trans('lang.expertAssistance') }}</span></a></li>
+							<li><a class="sidebar-link sidebar-title link-nav {{ Route::currentRouteName()=='subscription' ? 'active' : '' }}" href="{{route('subscription')}}"><i data-feather="git-pull-request"> </i><span>{{ trans('lang.subscription') }}</span></a></li>
+						</ul>
 					</li>
 					@endif
 

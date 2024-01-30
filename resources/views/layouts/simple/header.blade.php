@@ -343,7 +343,7 @@
             <div class="media-body">
               <span>{{ Session::get('emp')->full_name }}</span>
               <span id="deprtJS">{{ Session::get('emp')->department }}</span>
-              <p class="mb-0 font-roboto">{{ Session::get('emp')->role }}<i class="middle fa fa-angle-down"></i></p>
+              <p class="mb-0 font-roboto">{{ Session::get('rolename') }}<i class="middle fa fa-angle-down"></i></p>
             </div>
           </div>
           <ul class="profile-dropdown onhover-show-div">

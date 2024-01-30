@@ -130,8 +130,8 @@ class KycController extends Controller
         }
     }
 
-    public function aug_kyc_db_check(Request $request) {
-        $augStatus = KycStatus::where('fr_user_id', $request->session()->get('id'))->get(['panAttachment', 'aug_kyc_status', 'aug_doc_submit'])->first();
+    public function aug_kyc_db_check($id) {
+        $augStatus = KycStatus::where('fr_user_id', $id)->get(['panAttachment', 'aug_kyc_status', 'aug_doc_submit'])->first();
         if(isset($augStatus)) {
             $aug_kyc_status = $augStatus['aug_kyc_status'];
             $aug_doc_submit = $augStatus['aug_doc_submit'];

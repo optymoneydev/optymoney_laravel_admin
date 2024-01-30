@@ -28,7 +28,7 @@
 			<div class="card">
 				<div class="card-body">
 					<div class="dt-ext table-responsive">
-						<div class="modal fade" id="insuranceForm_modal" tabindex="-1" role="dialog" aria-labelledby="insuranceForm_modal" aria-hidden="true">
+						<div class="modal fade" id="newForm" tabindex="-1" role="dialog" aria-labelledby="newForm" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered modal-xl" role="document">
 								<div class="modal-content">
 									<form class="needs-validation" novalidate="" name="addinsurance" id="addinsurance" method="POST" enctype="multipart/form-data">
@@ -303,7 +303,7 @@
 								</div>
 							</div>
 						</div>
-						<table class="display" id="export-button-insurance">
+						<table class="display" id="insurance_table">
 							<thead>
 								<tr>
 									<th>Product Type</th>
@@ -318,46 +318,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach ($insurances as $insurance)
-								<tr>
-									<td>{{ ucfirst($insurance['ins_prod_type']) }}</td>
-									<td>{{ ucfirst($insurance['cust_name']) }}</td>
-									<td>{{ ucfirst($insurance['ins_policy_name']) }}</td>
-									<td>{{ ucfirst($insurance['ins_policy_issued_date']) }}</td>
-									<td>{{ ucfirst($insurance['ins_policy_maturity_date']) }}</td>
-									<td>{{ ucfirst($insurance['ins_policy_prem_amt']) }}</td>
-									<td>{{ ucfirst($insurance['ins_policy_next_prem_date']) }}</td>
-									@if($insurance['ins_policy_document'] =='' || $insurance['ins_policy_document'] ==null)
-										<td></td>
-									@else
-										<td>
-											@if (str_contains($insurance['ins_policy_document'], '|'))
-												@foreach (explode('|',$insurance['ins_policy_document']) as $file) 
-													@if ($file!="")
-													<a target="_blank" href="{{ url('itr/getfile/'.$insurance['ins_cust_id'].'/insurance/'.$file ) }}">{{ $file }}</a>
-													@endif
-												@endforeach
-											@else
-												<a target="_blank" href="{{ url('itr/getfile/'.$insurance['ins_cust_id'].'/insurance/'.$insurance['ins_policy_document'] ) }}">{{$insurance['ins_policy_document'] }}</a>
-											@endif
-										</td>        
-									@endif
-									<td>
-										<div class="m-b-30">
-											<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-												<div class="btn-group" role="group">
-													<button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button>
-													<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-														<a href="#" class="dropdown-item viewInsurance" data-id="{{ $insurance['ins_id'] }}">View</a>
-														<a href="#" class="dropdown-item editInsurance" data-id="{{ $insurance['ins_id'] }}">Edit</a>
-														<a href="#" class="dropdown-item deleteInsurance" data-id="{{ $insurance['ins_id'] }}">Delete</a>
-													</div>
-												</div>
-											</div>
-										</div>
-									</td>
-								</tr>
-								@endforeach
+								
 							</tbody>
 							
 						</table>

@@ -28,7 +28,7 @@
 			<div class="card">
 				<div class="card-body">
 					<div class="dt-ext table-responsive">
-						<div class="modal fade" id="pmsForm_modal" tabindex="-1" role="dialog" aria-labelledby="pmsForm_modal" aria-hidden="true">
+						<div class="modal fade" id="newForm" tabindex="-1" role="dialog" aria-labelledby="newForm" aria-hidden="true">
 							<div class="modal-dialog modal-dialog-centered modal-xl" role="document">
 								<div class="modal-content">
 									<form class="needs-validation" novalidate="" name="addpms" id="addpms" method="POST" enctype="multipart/form-data">
@@ -122,44 +122,7 @@
 								</tr>
 							</thead>
 							<tbody>
-								@foreach ($pmss as $pms)
-								<tr>
-									<td>{{ ucfirst($pms['cust_name']) }}</td>
-									<td>{{ ucfirst($pms['pms_prod_type']) }}</td>
-									<td>{{ ucfirst($pms['pms_trans_type']) }}</td>
-									<td>{{ ucfirst($pms['pms_trans_date']) }}</td>
-									<td>{{ ucfirst($pms['pms_trans_amt']) }}</td>
-									@if($pms['pms_document'] =='' || $pms['pms_document'] ==null)
-										<td></td>
-									@else
-										<td>
-											@if (strpos($pms['pms_document'], '|'))
-												@foreach (explode('|',$pms['pms_document']) as $file) 
-													@if ($file!="")
-													<a target="_blank" href="{{ url('itr/getfile/'.$pms['pms_cust_id'].'/'.$file ) }}">{{ $file }}</a>
-													@endif
-												@endforeach
-											@else
-												<a target="_blank" href="{{ url('itr/getfile/'.$pms['pms_cust_id'].'/'.$pms['pms_document'] ) }}">{{$pms['pms_document'] }}</a>
-											@endif
-										</td>        
-									@endif
-									<td>
-										<div class="m-b-30">
-											<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-												<div class="btn-group" role="group">
-													<button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button>
-													<div class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-														<a href="#" class="dropdown-item viewpms" data-id="{{ $pms['pms_id'] }}">View</a>
-														<a href="#" class="dropdown-item editpms" data-id="{{ $pms['pms_id'] }}">Edit</a>
-														<a href="#" class="dropdown-item deletepms" data-id="{{ $pms['pms_id'] }}">Delete</a>
-													</div>
-												</div>
-											</div>
-										</div>
-									</td>
-								</tr>
-								@endforeach
+								
 							</tbody>
 						</table>
 					</div>

@@ -362,13 +362,35 @@ class EmailController extends Controller
     $mailInfo->sender = "Optymoney";
     $mailInfo->senderCompany = "Optymoney";
     $mailInfo->to = $userdata['login_id'];
-    $mailInfo->subject = $eventData->bm_subject;
+    $mailInfo->subject = $eventData->event_subject;
     $mailInfo->name = "Optymoney";
     $mailInfo->from = "no-reply@optymoney.com";
     $mailInfo->template = "email-templates.event-reg";
     $mailInfo->attachment = "no";
     $mailInfo->files = "";
     $mailInfo->eventContent = $eventData->bm_content;
+    $mailInfo->eventName = $eventData->event_name;
+    // $mailInfo->cc = "ci@email.com";
+    // $mailInfo->bcc = "jim@email.com";
+
+    Mail::to($userdata['login_id'])
+      ->send(new OptyEmail($mailInfo));
+    
+    return $this->emailReport($userdata['login_id'], "event registered", "", "SUCCESS", 0, "");
+  }
+  public function send_event_feedback_status($userdata, $eventData) {
+    $mailInfo = new \stdClass();
+    $mailInfo->recieverName = $userdata['cust_name'];
+    $mailInfo->sender = "Optymoney";
+    $mailInfo->senderCompany = "Optymoney";
+    $mailInfo->to = $userdata['login_id'];
+    $mailInfo->subject = $eventData->event_subject;
+    $mailInfo->name = "Optymoney";
+    $mailInfo->from = "no-reply@optymoney.com";
+    $mailInfo->template = "email-templates.event-reg";
+    $mailInfo->attachment = "no";
+    $mailInfo->files = "";
+    $mailInfo->eventContent = "Your feedback submitted successfully";
     $mailInfo->eventName = $eventData->event_name;
     // $mailInfo->cc = "ci@email.com";
     // $mailInfo->bcc = "jim@email.com";
