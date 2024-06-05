@@ -18,6 +18,17 @@ class FAQController extends Controller
         return $clientData;
     }
 
+    public function getFaqByCategory(Request $request) {
+        $blogsData = Faq::where('faq_category', '=', $request->category)
+            ->orderBy('faq_id', 'DESC')
+            ->get()
+            ->toJson();
+        $data = [
+            'faq' => $blogsData
+        ];
+        return $data;
+    }
+
     public function saveFaq(Request $request) {
         $id = $request->session()->get('id');
 

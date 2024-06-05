@@ -114,11 +114,12 @@
 							<div class="according-menu"><i class="fa fa-angle-{{request()->route()->getPrefix() == '/cms' ? 'down' : 'right' }}"></i></div>
 						</a>
 						<ul class="sidebar-submenu" style="display: {{ request()->route()->getPrefix() == '/cms' ? 'block;' : 'none;' }}">
-							<li><a class="lan-4 {{ Route::currentRouteName()=='smstemplate' ? 'active' : '' }}" href="{{route('smstemplate')}}">{{ trans('lang.smstemplate') }}</a></li>
+							<li><a class="lan-4 {{ Route::currentRouteName()=='smstemplate' ? 'active' : '' }}" href="{{route('smstemplate')}}">{{ trans('lang.smstemplate') }}</a>qweqweqw</li>
 							<li><a class="lan-4 {{ Route::currentRouteName()=='emailFormats' ? 'active' : '' }}" href="{{route('emailFormats')}}">{{ trans('lang.emailFormats') }}</a></li>
 							<li><a class="lan-4 {{ Route::currentRouteName()=='blogs' ? 'active' : '' }}" href="{{route('blogs')}}">{{ trans('lang.blogs') }}</a></li>
 							<li><a class="lan-4 {{ Route::currentRouteName()=='faqs' ? 'active' : '' }}" href="{{route('faqs')}}">{{ trans('lang.faq') }}</a></li>
 							<li><a class="lan-4 {{ Route::currentRouteName()=='help' ? 'active' : '' }}" href="{{route('help')}}">{{ trans('lang.help') }}</a></li>
+							<li><a class="lan-4 {{ Route::currentRouteName()=='newsletter' ? 'active' : '' }}" href="{{route('newsletter')}}">{{ trans('lang.newsletter') }}</a></li>
 						</ul>
 					</li>
 					@endif

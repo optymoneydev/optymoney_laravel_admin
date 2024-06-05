@@ -118,6 +118,10 @@
 										<option value="A-ve">A -ve</option>
 										<option value="B+ve">B +ve</option>
 										<option value="B-ve">B -ve</option>
+										<option value="O+ve">O +ve</option>
+										<option value="O-ve">O -ve</option>
+										<option value="AB+ve">AB +ve</option>
+										<option value="AB-ve">AB -ve</option>
 									</select>
 								</div>
 							</div>

@@ -125,6 +125,33 @@ class PMSController extends Controller
         return $pmsData;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/pms/getPmsByUserAPI",
+        * operationId="getPmsByUserAPI",
+        * tags={"PMS"},
+        * summary="Get PMS details by user",
+        * description="Get PMS details by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function getPmsByUserAPI(Request $request) {
         $user = auth('userapi')->user();
         if($user) {

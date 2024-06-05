@@ -10,7 +10,7 @@ setTimeout(function(){
                     {
                         text: 'New Form',
                         action: function ( e, dt, node, config ) {
-                            $('#faqForm_modal').modal("show");
+                            $('#newForm').modal("show");
                         }
                     },
                     'copyHtml5',
@@ -47,7 +47,7 @@ setTimeout(function(){
                         console.log(res);
                         if(res['status_code']==200 || res['status_code']==201) {
                             $('#addfaq')[0].reset();
-                            $('#faqForm_modal').modal('hide');
+                            $('#newForm').modal('hide');
                             createNoty(res['message'], 'success');
                             faqData();
                         } else {
@@ -74,7 +74,7 @@ setTimeout(function(){
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function (response) {
-                        $('#faqForm_modal').modal('show');
+                        $('#newForm').modal('show');
                         $.each(response, function (key, val) {
                             if(key == 'faq_answer') {
                                 $('#' + key).html(val);    
@@ -139,7 +139,7 @@ setTimeout(function(){
                             {
                                 text: 'New FAQ',
                                 action: function ( e, dt, node, config ) {
-                                    $('#faqForm_modal').modal("show");
+                                    $('#newForm').modal("show");
                                 }
                             },
                             'copyHtml5',

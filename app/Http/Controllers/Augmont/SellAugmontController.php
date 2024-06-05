@@ -14,74 +14,81 @@ use Session;
 
 class SellAugmontController extends Controller
 {
-
     public function saveSellOrder(Request $request) {
-        try {
-            $general = new GeneralController();
-        
-            $data = $request->all();
-            $id = $request->session()->get('id');
-            $merchantTransactionId = "AUGOM_".$id."_".$general->uniqueNumericId(5)."_".$general->uniqueNumericId(10);
-            $userData = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
-                ->where('bfsi_user.pk_user_id', $request->session()->get('id'))
-                ->get(['bfsi_user.*', 'bfsi_users_details.*']);
-            if($data['userbank']=="newBank") {
-                $userBankCheck = Bfsi_bank_details::where([
-                    'acc_no' => $data['acc_no'],
-                    'fr_user_id' => $id
-                ])->first();
-                if(isset($userBankCheck)) {
-                    $data['augstatusCode'] = 1002;
-                    $data['message'] = "Bank Account Already Exist";
-                    return response()->json($data);
+        $user = auth('userapi')->user();
+        if($user) {
+            try {
+                $general = new GeneralController();
+                $data = $request->all();
+                $id = $user->pk_user_id;
+                $merchantTransactionId = "AUGOM_".$id."_".$general->uniqueNumericId(5)."_".$general->uniqueNumericId(10);
+                $userData = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
+                    ->where('bfsi_user.pk_user_id', $id)
+                    ->get(['bfsi_user.*', 'bfsi_users_details.*']);
+                if($data['userbank']=="newBank") {
+                    $userBankCheck = Bfsi_bank_details::where([
+                        'acc_no' => $data['acc_no'],
+                        'fr_user_id' => $id
+                    ])->first();
+                    if(isset($userBankCheck)) {
+                        $data['augstatusCode'] = 1002;
+                        $data['message'] = "Bank Account Already Exist";
+                        return response()->json($data);
+                    } else {
+                        $bankAccount = new Bfsi_bank_details();
+                        $bankAccount->fr_user_id = $id;
+                        $bankAccount->acc_no = $data['acc_no'];
+                        $bankAccount->bank_name = $data['bank_name'];
+                        $bankAccount->ifsc_code = $data['ifsc_code'];
+                        $bankAccount->augBankStatus = 'acitve';
+                        $bankStatus = $bankAccount->save();
+                        $userBank =[
+                            'accountName' => $userData[0]->cust_name,
+                            'accountNumber' => $data['acc_no'],
+                            'ifscCode' => $data['ifsc_code']
+                        ];
+                    }
                 } else {
-                    $bankAccount = new Bfsi_bank_details();
-                    $bankAccount->fr_user_id = $id;
-                    $bankAccount->acc_no = $data['acc_no'];
-                    $bankAccount->bank_name = $data['bank_name'];
-                    $bankAccount->ifsc_code = $data['ifsc_code'];
-                    $bankAccount->augBankStatus = 'acitve';
-                    $bankStatus = $bankAccount->save();
+                    $bankAccount = Bfsi_bank_details::where('pk_bank_detail_id', $data['userbank'])->get(); 
                     $userBank =[
                         'accountName' => $userData[0]->cust_name,
-                        'accountNumber' => $data['acc_no'],
-                        'ifscCode' => $data['ifsc_code']
+                        'accountNumber' => $bankAccount[0]->acc_no,
+                        'ifscCode' => $bankAccount[0]->ifsc_code
                     ];
                 }
-            } else {
-                $bankAccount = Bfsi_bank_details::where('pk_bank_detail_id', $data['userbank'])->get(); 
-                $userBank =[
-                    'accountName' => $userData[0]->cust_name,
-                    'accountNumber' => $bankAccount[0]->acc_no,
-                    'ifscCode' => $bankAccount[0]->ifsc_code
+                
+                $form_params = [
+                    'uniqueId' => $userData[0]->augid,
+                    'mobileNumber' => $userData[0]->contact,
+                    'lockPrice' => $data['lockPrice'],
+                    'blockId' => $data['blockId'],
+                    'metalType' => $data['metalType'],
+                    'quantity' => $data['quantity'],
+                    'merchantTransactionId' => $merchantTransactionId,
+                    'userBank' => $userBank,
                 ];
+                $augOrderRes = $this->postSellOrderToAugmont($form_params);
+                $data['augstatusCode'] = $augOrderRes->statusCode;
+                $data['augResponse'] = $augOrderRes;
+                if(isset( $augOrderRes->errors)) {
+                    $data['errors'] = $augOrderRes->errors;
+                }
+                if($augOrderRes->statusCode==200) {
+                    $up_stat = $this->insertOrder($id, $userData, $data, $augOrderRes->result->data, $augOrderRes->statusCode);
+                    return response()->json($data);
+                } else {
+                    return response()->json($data);
+                }
+            } catch (\Exception $e) {
+                \Log::channel('itsolution')->info($user->pk_user_id." : ".$e);
+                return $e;
             }
-            
-            $form_params = [
-                'uniqueId' => $userData[0]->augid,
-                'mobileNumber' => $userData[0]->contact,
-                'lockPrice' => $data['lockPrice'],
-                'blockId' => $data['blockId'],
-                'metalType' => $data['metalType'],
-                'quantity' => $data['quantity'],
-                'merchantTransactionId' => $merchantTransactionId,
-                'userBank' => $userBank,
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
             ];
-            $augOrderRes = $this->postSellOrderToAugmont($form_params);
-            $data['augstatusCode'] = $augOrderRes->statusCode;
-            $data['augResponse'] = $augOrderRes;
-            if(isset( $augOrderRes->errors)) {
-                $data['errors'] = $augOrderRes->errors;
-            }
-            if($augOrderRes->statusCode==200) {
-                $up_stat = $this->insertOrder($id, $userData, $data, $augOrderRes->result->data, $augOrderRes->statusCode);
-                return response()->json($data);
-            } else {
-                return response()->json($data);
-            }
-        } catch (\Exception $e) {
-            \Log::channel('itsolution')->info($request->session()->get('id')." : ".$e->getMessage());
-            return $e->getMessage();
+            return $data;
         }
     }
 

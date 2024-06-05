@@ -20,10 +20,10 @@ class SIPAugmontController extends Controller
                     "message" => "You are not authrorized to perform this request."
                   ]);
             } else {
-                return json_encode((new AugmontController)->clientRequests('GET', 'merchant/v1/sip/rates', ''));
+                return (new AugmontController)->clientRequests('GET', 'merchant/v1/sip/rates', '');
             }
         } catch (\Exception $e) {
-            \Log::channel('itsolution')->info($request->session()->get('id')." : ".$e->getMessage());
+            \Log::channel('itsolution')->info(" SIP Rates : ".$e->getMessage());
             return $e->getMessage();
         }
     }

@@ -244,6 +244,33 @@ class InsuranceController extends Controller
         return $insuranceData;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/insurance/getInsuranceByUserAPI",
+        * operationId="getInsuranceByUserAPI",
+        * tags={"Insurance"},
+        * summary="Get Insurance details by user",
+        * description="Get Insurance details by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function getInsuranceByUserAPI(Request $request) {
         $user = auth('userapi')->user();
         if($user) {

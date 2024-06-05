@@ -110,6 +110,7 @@
 		'roles' => 'Roles',
 		'permissions' => 'Permissions',
 		'otherInvestments' => 'Other Investments',
-		'support' => 'Support'
+		'support' => 'Support',
+		'newsletter' => 'News Letter'
 	]
 ?>

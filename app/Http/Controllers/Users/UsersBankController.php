@@ -38,47 +38,93 @@ class UsersBankController extends Controller
     }
 
     public function createBankAccount(Request $request) {
-        $data = $request->all();
-        $augmentController = new AugmontController();
-        $id = $request->session()->get('id');
-        $userData = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
-              ->where('bfsi_user.pk_user_id', $id)
-              ->get(['bfsi_user.*', 'bfsi_users_details.*']);
-        $userBankCheck = Bfsi_bank_details::where([
-            'acc_no' => $data['acc_no'],
-            'fr_user_id' => $id
-        ])->first();
-        if($userBankCheck) {
-            $banks['status'] = "422";
-            $banks['message'] = "Bank Account already exist";
-            return View::make('users.banks', $banks);
-        } else {
-            // $bankAugResponse = $this->createAugmontBankAccount($data, $userData[0]->augid, $userData[0]->cust_name);
-            // dd($bankAugResponse);
-            $bankAccount = new Bfsi_bank_details();
-            $bankAccount->fr_user_id = $id;
-            $bankAccount->acc_no = $data['acc_no'];
-            $bankAccount->bank_name = $data['bank_name'];
-            $bankAccount->ifsc_code = $data['ifsc_code'];
-            $bankAccount->augBankStatus = 'acitve';
-            $bankStatus = $bankAccount->save();
-            if($bankStatus) {
-                $banks['status'] = "200";
-                $banks['message'] = "Bank Account Added Successfully";
-                return View::make('users.banks', $banks);
-            } else {
+        $user = auth('userapi')->user();
+        if($user) {
+            $id = $user->pk_user_id;
+            $userData = Bfsi_user::where('pk_user_id', $id)->get(['augid']);
+
+            $data = $request->all();
+            $augmentController = new AugmontController();
+            $userData = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
+                ->where('bfsi_user.pk_user_id', $id)
+                ->get(['bfsi_user.*', 'bfsi_users_details.*']);
+            $userBankCheck = Bfsi_bank_details::where([
+                'acc_no' => $data['acc_no'],
+                'fr_user_id' => $id
+            ])->first();
+            if($userBankCheck) {
                 $banks['status'] = "422";
-                $banks['message'] = "Bank Account adding failed. Please try after sometime...";
-                return View::make('users.banks', $banks);
+                $banks['message'] = "Bank Account already exist";
+                return $banks;
+            } else {
+                // $bankAugResponse = $this->createAugmontBankAccount($data, $userData[0]->augid, $userData[0]->cust_name);
+                // dd($bankAugResponse);
+                $bankAccount = new Bfsi_bank_details();
+                $bankAccount->fr_user_id = $id;
+                $bankAccount->acc_no = $data['acc_no'];
+                $bankAccount->bank_name = $data['bank_name'];
+                $bankAccount->ifsc_code = $data['ifsc_code'];
+                $bankAccount->augBankStatus = 'acitve';
+                $bankStatus = $bankAccount->save();
+                if($bankStatus) {
+                    $banks['status'] = "200";
+                    $banks['message'] = "Bank Account Added Successfully";
+                    return $banks;
+                } else {
+                    $banks['status'] = "422";
+                    $banks['message'] = "Bank Account adding failed. Please try after sometime...";
+                    return $banks;
+                }
             }
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
+            ];
+            return $data;
         }
-        
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/customer/users/allUserBanks",
+        * operationId="allUserBanks",
+        * tags={"User Profile"},
+        * summary="Get Bank details by user",
+        * description="Get bank details by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function allUserBanks(Request $request) {
-        $id = $request->session()->get('id');
-        $data = Bfsi_bank_details::where('fr_user_id',$id)->get(); 
-        return $data;
+        $user = auth('userapi')->user();
+        if($user) {
+            $id = $user->pk_user_id;
+            $data = Bfsi_bank_details::where('fr_user_id',$id)->get(); 
+            return $data;
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
+            ];
+            return $data;
+        }
     }
 
     public function api_allUserBanks(Request $request) {
@@ -87,6 +133,33 @@ class UsersBankController extends Controller
         return $data;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/customer/bankAccountsAPI",
+        * operationId="bankAccountsAPI",
+        * tags={"User Profile"},
+        * summary="Get Bank details by user",
+        * description="Get bank details by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function bankAccountsAPI(Request $request) {
         $user = auth('userapi')->user();
         if($user) {
@@ -107,10 +180,58 @@ class UsersBankController extends Controller
         }
     }
     
+    /**
+        * @OA\Post(
+        * path="/api/customer/savebankAccountAPI",
+        * operationId="savebankAccountAPI",
+        * tags={"User Profile"},
+        * summary="Save Bank Account",
+        * description="Save Bank Account",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"ifsc_code", "bank_name", "ac_type", "acc_no", "branch_name", "ba_addr1", "ba_addr2", "ba_city", "ba_state", "ba_zip", "ba_country"},
+        *               @OA\Property(property="ifsc_code", type="text"),
+        *               @OA\Property(property="bank_name", type="text"),
+        *               @OA\Property(property="ac_type", type="text"),
+        *               @OA\Property(property="acc_no", type="text"),
+        *               @OA\Property(property="branch_name", type="text"),
+        *               @OA\Property(property="ba_addr1", type="text"),
+        *               @OA\Property(property="ba_addr2", type="text"),
+        *               @OA\Property(property="ba_city", type="text"),
+        *               @OA\Property(property="ba_state", type="text"),
+        *               @OA\Property(property="ba_zip", type="text"),
+        *               @OA\Property(property="ba_country", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Bank Account Saved Successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Bank Account Saved Successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function savebankAccountAPI(Request $request) {
-        $bc = new StarMFWebServiceController();
-        $mandateAuth = $bc->eMandateAuthURL('2795', 'OPMY002052', "809676");
-        return $mandateAuth;
+        // $bc = new StarMFWebServiceController();
+        // $mandateAuth = $bc->eMandateAuthURL('2795', 'OPMY002052', "809676");
+        // return $mandateAuth;
         $user = auth('userapi')->user();
         if($user) {
             $id = $user->pk_user_id;
@@ -158,7 +279,6 @@ class UsersBankController extends Controller
                 $mandateAuth = $bc->eMandateAuthURL($bfsi_bank->id, $user->bse_id, $mandate['mandate_id']);
                 // return $mandateAuth;
                 $mandateDetails = $bc->mandateDetails($bfsi_bank->id, $user->bse_id);
-                return $mandateDetails;
                 if($bfsi_bank_infoSave) {
                     $data = [
                         "statusCode" => 201,

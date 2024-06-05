@@ -552,42 +552,42 @@ class BSEController extends Controller
     public function purchaseSip(Request $request) {
         $envBSEDataJson = $this->getEnvData();
         $user = auth('userapi')->user();
-        return $user;
-        // if($user) {
-        //     // Create order for Lumpsum and SIP
-        //     while (list($key,$val) = each($userId)) {
-        //         // create unqiue id
-        //         $unique_id = time();
-        //         $unique_id = $unique_id.sprintf('%06d', $val['mf_cart_id']);
-        //         //create reference id
-        //         $ref_no    = date("Ymd")."1".$this->CONFIG->loggedUserId.sprintf('%06d', $val['mf_cart_id']);
-        //         if($val['p_method'] == 1) { // Lumpsum
-        //             $para_val = $this->lumpsum($val,$unique_id,$ref_no);
-        //             $order_id = $this->bseSync->placeOrderBSE($para_val,$val['mf_cart_id']);
-        //             $pos = strpos($order_id, "FAILED");
-        //             if($pos > 0) {
-        //                 return $order_id;
-        //             } else {
-        //                 $this->db->db_run_query("Update mf_cart_sys set  pipe_val='".$para_val."', bse_order_id='".$order_id."' where mf_cart_id='".$val['mf_cart_id']."'");
-        //             }
-        //         }
-        //         elseif($val['p_method'] == 2) { // SIP
-        //             $para_val = $this->sip($val,$unique_id,$ref_no);
-        //             $order_id = $this->bseSync->placeSIPOrderBSE($para_val,$val['mf_cart_id']);
-        //             $pos = strpos($order_id, "FAILED");
-        //             if($pos > 0) {
-        //                 return $order_id;
-        //             } else {
-        //                 $this->db->db_run_query("Update mf_cart_sys set pipe_val='".$para_val."', bse_order_id='".$order_id."' where mf_cart_id='".$val[mf_cart_id]."'");
-        //             }
-        //         }
-        //         $bse_user_id = $val['bse_id'];
-        //     }
-        //     $p_link_para = $this->p_link_p($bse_user_id);
-        //     $p_link = $this->bseSync->getPLink($p_link_para);
-        //     $link = 'http'.$p_link;
-        //     return $link;
-        // }
+        // return $user;
+        if($user) {
+            // Create order for Lumpsum and SIP
+            while (list($key,$val) = each($userId)) {
+                // create unqiue id
+                $unique_id = time();
+                $unique_id = $unique_id.sprintf('%06d', $val['mf_cart_id']);
+                //create reference id
+                $ref_no    = date("Ymd")."1".$this->CONFIG->loggedUserId.sprintf('%06d', $val['mf_cart_id']);
+                if($val['p_method'] == 1) { // Lumpsum
+                    $para_val = $this->lumpsum($val,$unique_id,$ref_no);
+                    $order_id = $this->bseSync->placeOrderBSE($para_val,$val['mf_cart_id']);
+                    $pos = strpos($order_id, "FAILED");
+                    if($pos > 0) {
+                        return $order_id;
+                    } else {
+                        $this->db->db_run_query("Update mf_cart_sys set  pipe_val='".$para_val."', bse_order_id='".$order_id."' where mf_cart_id='".$val['mf_cart_id']."'");
+                    }
+                }
+                elseif($val['p_method'] == 2) { // SIP
+                    $para_val = $this->sip($val,$unique_id,$ref_no);
+                    $order_id = $this->bseSync->placeSIPOrderBSE($para_val,$val['mf_cart_id']);
+                    $pos = strpos($order_id, "FAILED");
+                    if($pos > 0) {
+                        return $order_id;
+                    } else {
+                        $this->db->db_run_query("Update mf_cart_sys set pipe_val='".$para_val."', bse_order_id='".$order_id."' where mf_cart_id='".$val[mf_cart_id]."'");
+                    }
+                }
+                $bse_user_id = $val['bse_id'];
+            }
+            $p_link_para = $this->p_link_p($bse_user_id);
+            $p_link = $this->bseSync->getPLink($p_link_para);
+            $link = 'http'.$p_link;
+            return $link;
+        }
     }
 
     public function soapPswdResToArr($res, $name_space) {

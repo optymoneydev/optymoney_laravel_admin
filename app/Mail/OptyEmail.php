@@ -31,7 +31,6 @@ class OptyEmail extends Mailable
         $address = $this->mailData->to;
         $subject = $this->mailData->subject;
         $name = $this->mailData->name;
-        // dd($this->mailData->to);
         // $cc = $this->mailData->cc;
         // $bcc = $this->mailData->bcc;
         $from = $this->mailData->from;
@@ -43,7 +42,7 @@ class OptyEmail extends Mailable
                 // ->bcc($cc, $name)
                 ->replyTo($from, $name)
                 ->subject($subject)
-                ->attachData($this->mailData->files, 'invoice.pdf')
+                ->attachData($this->mailData->files->output(), $this->mailData->filename.'.pdf')
                 ->with(['mailMessage' => $this->mailData]);
         } else {
             return $this->view($this->mailData->template)

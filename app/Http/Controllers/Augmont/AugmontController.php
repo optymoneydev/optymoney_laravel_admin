@@ -91,6 +91,44 @@ class AugmontController extends Controller
         }
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/augmont/getCity",
+        * operationId="getCityByState",
+        * tags={"Augmont"},
+        * summary="Get city by state",
+        * description="Get city by state",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"state"},
+        *               @OA\Property(property="state", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrived",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrived",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function getCity(Request $request) {
         try {
             $client = new Client(['verify' => false ]);
@@ -128,9 +166,44 @@ class AugmontController extends Controller
         return $data;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/customer/augmont/api_orders",
+        * operationId="augmontOrders",
+        * tags={"Augmont"},
+        * summary="Get Augmont Orders by user",
+        * description="Get Augmont Orders by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function api_orders(Request $request) {
-        $id = $request->uid;
-        $data = AugmontOrders::where('user_id', $id)->get(); 
+        $user = auth('userapi')->user();
+        if($user) {
+            $id = $user->pk_user_id;
+            $data = AugmontOrders::where('user_id',$id)->orderBy('id', 'DESC')->get(); 
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
+            ];
+        }
         return $data;
     }
 
@@ -186,9 +259,49 @@ class AugmontController extends Controller
         return $data1;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/customer/augmont/sipList",
+        * operationId="augmontSIPOrders",
+        * tags={"Augmont"},
+        * summary="Get Augmont SIP Orders by user",
+        * description="Get Augmont SIP Orders by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function sipList(Request $request) {
-        $id = $request->session()->get('id');
-        $data = Razorpay_Subscription::where('fr_user_id',$id)->get(); 
+        $user = auth('userapi')->user();
+        if($user) {
+            $id = $user->pk_user_id;
+            // $x = new RazorpaySubscriptionController();
+            // $data = $x->fetchSubscriptionById("sub_N5OXUvlOBAAfsH");
+            $data = Razorpay_Subscription::join('razor_plan', 'razor_plan.razor_plan_id', '=', 'razor_subscription.razor_plan_id')
+            ->where('razor_subscription.fr_user_id', $id)
+            ->orderBy('razor_subscription.id', 'DESC')
+            ->get(['razor_subscription.*', 'razor_plan.*']);
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
+            ];
+        }
         return $data;
     }
 
@@ -313,6 +426,7 @@ class AugmontController extends Controller
         $availCount['silverSell'] = $silverSell;
         $availCount['goldBuy'] = $goldBuy;
         $availCount['goldSell'] = $goldSell;
+        $availCount['test'] = "test";
 
         return $availCount;
     }
@@ -498,16 +612,38 @@ class AugmontController extends Controller
         return $myObj; 
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/augmont/getMetalCountAPI",
+        * operationId="getMetalCount",
+        * tags={"Augmont"},
+        * summary="Augmont Metal Count",
+        * description="Augmont Metal Count",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function getMetalCountAPI() {
         $user = auth('userapi')->user();
         if($user) {
-            
             $id = $user->pk_user_id;
-
-            $availCount = AugmontOrders::where(['user_id' => $id])->whereNotNull('transactionId')->orderBy("created_at", "desc")->get(['goldBalance','silverBalance'])->first();
-            if ($availCount === null) {
-                $availCount = array('goldBalance' => 0, 'silverBalance' => 0);
-            }
+            $availCount = $this->api_metalCount_by_id($id);
             $data = [
                 "statusCode" => 201,
                 "data" => $availCount

@@ -56,6 +56,7 @@ return [
             'path' => storage_path('logs/laravel.log'),
             'level' => 'debug',
             'days' => 14,
+            'permission' => 0777,
         ],
 
         'slack' => [
@@ -107,11 +108,19 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/itsolution.log'),
             'level' => 'info',
+            'permission' => 0777,
+        ],
+        'webhooks' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/webhooks.log'),
+            'level' => 'info',
+            'permission' => 0777,
         ],
         'accounts' => [
             'driver' => 'daily',
             'path' => storage_path('logs/accounts.log'),
             'level' => 'info',
+            'permission' => 0777,
         ],
         'exceptions' => [
             'driver' => 'daily',
@@ -122,6 +131,7 @@ return [
             'driver' => 'single',
             'path' => storage_path('logs/userlogindata.log'),
             'level' => 'debug',
+            'permission' => 0777,
         ],
     ],
 

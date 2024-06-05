@@ -46,6 +46,16 @@ class BlogsController extends Controller
         return $data;
     }
 
+    public function getLatestBlogs(Request $request) {
+        $blogsData = Blogs::where('status', '=', "publish")->orderBy('id', 'DESC')->limit($request->count)
+            ->get(['id','post_author','thumbnailimage', 'post_category', 'slug', 'title', 'post_date'])
+            ->toJson();
+        $data = [
+            'blogs' => $blogsData
+        ];
+        return $data;
+    }
+
     public function getBlogsData(Request $request) {
         if($request->category == "default") {
             $blogsData = Blogs::where('status', '=', "publish")->orderBy('id', 'DESC')->offset((int)$request->end)

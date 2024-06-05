@@ -115,6 +115,33 @@ class OrdersAugmontController extends Controller
         echo $response;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/augmont/getAugOrdersByUserAPI",
+        * operationId="getAugOrdersByUserAPI",
+        * tags={"Augmont"},
+        * summary="Augmont Orders by user",
+        * description="Augmont orders by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function getAugOrdersByUserAPI() {
         $user = auth('userapi')->user();
         if($user) {

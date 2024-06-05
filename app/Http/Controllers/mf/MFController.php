@@ -351,8 +351,6 @@ class MFController extends Controller
         return $data;
     }
 
-    
-
     public function getTransactionsFromCams($pan, $scheme_code, $folio_no) {
         $transactions = Mf_cams::where(['pan' => $pan, 'prodcode' => $scheme_code, 'folio_no' => $folio_no])->get();
         return $transactions;

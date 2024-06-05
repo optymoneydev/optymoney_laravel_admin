@@ -8,6 +8,7 @@ use App\Http\Controllers\OrdersAugmontController;
 use Illuminate\Http\Request;
 Use App\Models\AugmontOrders;
 Use App\Models\Bfsi_user;
+Use App\Models\Bfsi_users_detail;
 Use App\Models\Razorpay_Response;
 use Razorpay\Api\Api;
 use Razorpay\Api\Payment;
@@ -29,8 +30,67 @@ class RazorpayController extends Controller
     }
 
     public function createSIPAPI() {
-        $api = new Api(env('RAZORPAY_SIP_KEY'), env('RAZORPAY_SIP_SECRET'));
+        if(env('RAZORPAY_MODE') == "test") {
+            $api = new Api(env('RAZORPAY_SIP_KEY_TEST'), env('RAZORPAY_SIP_SECRET_TEST'));
+        } else {
+            $api = new Api(env('RAZORPAY_SIP_KEY'), env('RAZORPAY_SIP_SECRET'));
+        }
         return $api;
+    }
+
+    public function createCustomer($data) {
+        try {
+            if(env('RAZORPAY_MODE') == "test") {
+                $api = new Api(env('RAZORPAY_SIP_KEY_TEST'), env('RAZORPAY_SIP_SECRET_TEST'));
+            } else {
+                $api = new Api(env('RAZORPAY_SIP_KEY'), env('RAZORPAY_SIP_SECRET'));
+            }
+            
+            $razorPostData = array(
+                'name' => $data->cust_name, 
+                'email' => $data->login_id,
+                'contact'=> $data->contact_no,
+                'notes'=> array(
+                    'notes_key_1'=> $data->augid
+                )
+            );
+            $cust_stat = $api->customer->create($razorPostData);
+            $upstatus = Bfsi_users_detail::where('fr_user_id', $id)->update([
+                'rzpCustId' => $cust_stat->id
+            ]);
+            return $upstatus;
+        } catch (\Exception $e) {
+            \Log::channel('itsolution')->error($data->pk_user_id." : ".$e->getMessage());
+            return $e;
+        }
+        
+    }
+
+    public function fetchAllCustomers() {
+        try {
+            if(env('RAZORPAY_MODE') == "test") {
+                $api = new Api(env('RAZORPAY_SIP_KEY_TEST'), env('RAZORPAY_SIP_SECRET_TEST'));
+            } else {
+                $api = new Api(env('RAZORPAY_SIP_KEY'), env('RAZORPAY_SIP_SECRET'));
+            }
+            $options = array(
+                'count' => 100, 
+                'skip' => 0
+            );
+            $custlist = $api->customer->all();
+            foreach($custlist->items as $item) {
+                $upstatus = Bfsi_user::where('login_id', $item->email)->first();
+                if($upstatus) {
+                    $upstatus = Bfsi_users_detail::where('fr_user_id', $upstatus->pk_user_id)->update([
+                        'rzpCustId' => $item->id
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::channel('itsolution')->error($e->getMessage());
+            return $e;
+        }
+        
     }
 
     public function payment($augOrderData, $merchantTransactionId, $userData, $amount, $razorLogin) {
@@ -145,10 +205,14 @@ class RazorpayController extends Controller
     }
 
     public function verifySipSignature($request) {
-        $api = new Api(env('RAZORPAY_KEY'), env('RAZORPAY_SECRET'));
+        if(env('RAZORPAY_MODE') == "test") {
+            $api = new Api(env('RAZORPAY_SIP_KEY_TEST'), env('RAZORPAY_SIP_SECRET_TEST'));
+        } else {
+            $api = new Api(env('RAZORPAY_SIP_KEY'), env('RAZORPAY_SIP_SECRET'));
+        }
         try{
             $attributes = array(
-                'razorpay_order_id' => $request->razorpay_subscription_id,
+                'razorpay_subscription_id' => $request->razorpay_subscription_id,
                 'razorpay_payment_id' => $request->razorpay_payment_id,
                 'razorpay_signature' => $request->razorpay_signature
             );
@@ -310,7 +374,7 @@ class RazorpayController extends Controller
             $rpr = new Razorpay_Response();
             $rid = $response->toArray();
             // dd($response);
-            $products = array( 
+            $responseData = array( 
                 "pay_id" => $rid['id'], 
                 "entity" => $rid['entity'], 
                 "amount" => $rid['amount'], 
@@ -333,36 +397,36 @@ class RazorpayController extends Controller
                 "error_code" => $rid['error_code'],
                 "error_description" => $rid['error_description']
             );
-            $products["method"] = $rid['method'];
+            $responseData["method"] = $rid['method'];
             if($rid['method'] == "card") {
-                $products["card_name"] = $rid['card']['name'];
-                $products["card_last4"] = $rid['card']['last4'];
-                $products["card_network"] = $rid['card']['network'];
-                $products["card_type"] = $rid['card']['type'];
-                $products["card_issuer"] = $rid['card']['issuer'];
-                $products["card_international"] = $rid['card']['international'];
-                $products["card_emi"] = $rid['card']['emi'];
-                $products["card_sub_type"] = $rid['card']['sub_type'];
-                $products["card_token_iin"] = $rid['card']['token_iin'];
+                $responseData["card_name"] = $rid['card']['name'];
+                $responseData["card_last4"] = $rid['card']['last4'];
+                $responseData["card_network"] = $rid['card']['network'];
+                $responseData["card_type"] = $rid['card']['type'];
+                $responseData["card_issuer"] = $rid['card']['issuer'];
+                $responseData["card_international"] = $rid['card']['international'];
+                $responseData["card_emi"] = $rid['card']['emi'];
+                $responseData["card_sub_type"] = $rid['card']['sub_type'];
+                $responseData["card_token_iin"] = $rid['card']['token_iin'];
             } else {
                 if($rid['method'] == "bank") {
-                    $products["bank"] = $rid['bank'];
-                    $products["bank_transaction_id"] = $rid['bank_transaction_id'];
+                    $responseData["bank"] = $rid['bank'];
+                    $responseData["bank_transaction_id"] = $rid['bank_transaction_id'];
                 } else {
                     
                 }
             }
             if($rid['notes']) {
-                $products["notes_address"] = $rid['notes']['address'];
-                $products["notes_descr"] = $rid['notes']['descr'];
+                $responseData["notes_address"] = $rid['notes']['address'];
+                $responseData["notes_descr"] = $rid['notes']['descr'];
             }
             if($rid['acquirer_data']) {
-                $products["acquirer_auth_code"] = $rid['acquirer_data']['auth_code'];
-                $products["acquirer_authentication_reference_number"] = isset($rid['acquirer_data']['authentication_reference_number'])?$rid['acquirer_data']['authentication_reference_number']:null;
-                $products["acquirer_arn"] = isset($rid['acquirer_data']['arn'])?$rid['acquirer_data']['arn']:null;
+                $responseData["acquirer_auth_code"] = $rid['acquirer_data']['auth_code'];
+                $responseData["acquirer_authentication_reference_number"] = isset($rid['acquirer_data']['authentication_reference_number'])?$rid['acquirer_data']['authentication_reference_number']:null;
+                $responseData["acquirer_arn"] = isset($rid['acquirer_data']['arn'])?$rid['acquirer_data']['arn']:null;
             }
-            // dd($products);
-            $dbres = DB::table('razorpay_response')->insert($products);
+            // dd($responseData);
+            $dbres = DB::table('razorpay_response')->insert($responseData);
             // dd($dbres);
             return $dbres;
         } catch (\Exception $e) {

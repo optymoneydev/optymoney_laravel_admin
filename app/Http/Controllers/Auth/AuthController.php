@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Auth;
-
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Validator,Redirect,Response;
 use View;
@@ -34,7 +34,7 @@ class AuthController extends Controller {
           'email' => 'required',
           'password' => 'required',
         ]);
-
+        // return "check";
         $credentials['official_email'] = $request->email;
         $credentials['password'] = $request->password;
 

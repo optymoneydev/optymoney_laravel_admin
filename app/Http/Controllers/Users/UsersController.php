@@ -46,6 +46,7 @@ class UsersController extends Controller
                   'bfsi_user.augid', 
                   'bfsi_user.pk_user_id', 
                   'bfsi_user.login_id', 
+                  'bfsi_user.contact',
                   'bfsi_users_details.*'])->first();
         return $userData;
     }
@@ -57,6 +58,47 @@ class UsersController extends Controller
         return $myObj; 
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/contact",
+        * operationId="ContactForm",
+        * tags={"Contact Us"},
+        * summary="Contact Us",
+        * description="Contact Us",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"formname", "formemail", "formnumber", "formmessage"},
+        *               @OA\Property(property="formemail", type="email"),
+        *               @OA\Property(property="formname", type="text"),
+        *               @OA\Property(property="formnumber", type="text"),
+        *               @OA\Property(property="formmessage", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Contact form submitted successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Contact form submitted successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function saveContactUsForm(Request $request) {
         $contactForm = new Contact_info();
         $contactForm->con_name = $request->formname;

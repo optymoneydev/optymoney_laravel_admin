@@ -15,11 +15,10 @@ use App\Http\Controllers\Augmont\InvoiceAugmontController;
 class EmailController extends Controller
 {
     public function send_otp_email($email , $emailtype) {
-
+      try {
         $otpnew = mt_rand(10000, 99999);
         $_SESSION['otp'] = $otpnew; 
         $otp_msg = 'Your OTP to Register on OPTYMONEY is '.$otpnew.' The OTP will be valid for next 15 mins';
-
         $mailInfo = new \stdClass();
         $mailInfo->recieverName = $email;
         $mailInfo->sender = "Optymoney";
@@ -37,8 +36,8 @@ class EmailController extends Controller
         // $mailInfo->cc = "ci@email.com";
         // $mailInfo->bcc = "jim@email.com";
 
-        Mail::to($email)->send(new OptyEmail($mailInfo));
-
+        $emailStat = Mail::to($email)->send(new OptyEmail($mailInfo));
+        \Log::channel('accounts')->info(json_encode(['email' => $email, 'function' => "send_otp_email", 'emailstatus' => $emailStat]));
         $emails = new Emails;
         $emails->emailAddress = $email;
         $emails->email_type = $emailtype;
@@ -51,93 +50,115 @@ class EmailController extends Controller
         } else {
           return "FAILURE";
         }
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $email, 'function' => "send_otp_email", 'output' => $e]));
+        return $e->getMessage();
+      }
     }
 
     public function send_fp_otp_email($email , $emailtype, $cust_name) {
+      try {
+        $otpnew = mt_rand(10000, 99999);
+        $_SESSION['otp'] = $otpnew; 
+        $otp_msg = 'Your OTP to Register on OPTYMONEY is '.$otpnew.' The OTP will be valid for next 15 mins';
 
-      $otpnew = mt_rand(10000, 99999);
-      $_SESSION['otp'] = $otpnew; 
-      $otp_msg = 'Your OTP to Register on OPTYMONEY is '.$otpnew.' The OTP will be valid for next 15 mins';
+        $mailInfo = new \stdClass();
+        $mailInfo->recieverName = $cust_name;
+        $mailInfo->sender = "Optymoney";
+        $mailInfo->senderCompany = "Optymoney";
+        $mailInfo->to = $email;
+        $mailInfo->subject = "Optymoney - OTP Verification";
+        $mailInfo->name = "Optymoney";
+        $mailInfo->from = "no-reply@optymoney.com";
+        $mailInfo->template = "email-templates.otp";
+        $mailInfo->otp = $otpnew;
+        $mailInfo->attachment = "no";
+        $mailInfo->files = "";
+        $mailInfo->metalType = "";
+        $mailInfo->amount = "";
+        // $mailInfo->cc = "ci@email.com";
+        // $mailInfo->bcc = "jim@email.com";
 
-      $mailInfo = new \stdClass();
-      $mailInfo->recieverName = $cust_name;
-      $mailInfo->sender = "Optymoney";
-      $mailInfo->senderCompany = "Optymoney";
-      $mailInfo->to = $email;
-      $mailInfo->subject = "Optymoney - OTP Verification";
-      $mailInfo->name = "Optymoney";
-      $mailInfo->from = "no-reply@optymoney.com";
-      $mailInfo->template = "email-templates.otp";
-      $mailInfo->otp = $otpnew;
-      $mailInfo->attachment = "no";
-      $mailInfo->files = "";
-      $mailInfo->metalType = "";
-      $mailInfo->amount = "";
-      $mailInfo->cc = "saikrishna@devmantra.com";
-      // $mailInfo->bcc = "jim@email.com";
-      $stat = Mail::to($email)->send(new OptyEmail($mailInfo));
-      $emails = new Emails;
-      $emails->emailAddress = $email;
-      $emails->email_type = $emailtype;
-      $emails->email_content = $otp_msg;
-      $emails->email_status = "SUCCESS";
-      $emails->email_otp = $otpnew;
-      $emails->email_verification = "PENDING";
-      if($emails->save()) {
-        return "SUCCESS";
-      } else {
-        return "FAILURE";
+        $emailStat = Mail::to($email)->send(new OptyEmail($mailInfo));
+        \Log::channel('accounts')->info("send_fp_otp_email: ".json_encode(['user' => $email, 'result' => $emailStat]));
+        $emails = new Emails;
+        $emails->emailAddress = $email;
+        $emails->email_type = $emailtype;
+        $emails->email_content = $otp_msg;
+        $emails->email_status = "SUCCESS";
+        $emails->email_otp = $otpnew;
+        $emails->email_verification = "PENDING";
+        if($emails->save()) {
+          return "SUCCESS";
+        } else {
+          return "FAILURE";
+        }
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $email, 'function' => "send_fp_otp_email", 'output' => $e]));
+        return $e->getMessage();
       }
     }
 
     public function send_user_creation_email($userdata) {
-      $mailInfo = new \stdClass();
-      $mailInfo->recieverName = $userdata['cust_name'];
-      $mailInfo->sender = "Optymoney";
-      $mailInfo->senderCompany = "Optymoney";
-      $mailInfo->to = $userdata['login_id'];
-      $mailInfo->subject = "Optymoney - Account Creation";
-      $mailInfo->name = "Optymoney";
-      $mailInfo->from = "no-reply@optymoney.com";
-      $mailInfo->template = "email-templates.account-creation";
-      $mailInfo->attachment = "no";
-      $mailInfo->files = "";
-      $mailInfo->metalType = "";
-      $mailInfo->amount = "";
-      // $mailInfo->cc = "ci@email.com";
-      // $mailInfo->bcc = "jim@email.com";
+      try {
+        $mailInfo = new \stdClass();
+        $mailInfo->recieverName = $userdata['cust_name'];
+        $mailInfo->sender = "Optymoney";
+        $mailInfo->senderCompany = "Optymoney";
+        $mailInfo->to = $userdata['login_id'];
+        $mailInfo->subject = "Optymoney - Account Creation";
+        $mailInfo->name = "Optymoney";
+        $mailInfo->from = "no-reply@optymoney.com";
+        $mailInfo->template = "email-templates.account-creation";
+        $mailInfo->attachment = "no";
+        $mailInfo->files = "";
+        $mailInfo->metalType = "";
+        $mailInfo->amount = "";
+        // $mailInfo->cc = "ci@email.com";
+        // $mailInfo->bcc = "jim@email.com";
 
-      Mail::to($userdata['login_id'])
-         ->send(new OptyEmail($mailInfo));
-      
-      return $this->emailReport($userdata['login_id'], "Account Activation", "", "SUCCESS", 0, "");
+        $emailStat = Mail::to($userdata['login_id'])
+          ->send(new OptyEmail($mailInfo));
+        \Log::channel('accounts')->info("send_user_creation_email: ".json_encode(['user' => $userdata, 'result' => $emailStat]));
+        return $this->emailReport($userdata['login_id'], "Account Activation", "", "SUCCESS", 0, "");
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $userdata, 'function' => "send_user_creation_email", 'output' => $e]));
+        return $e->getMessage();
+      }
     }
 
     public function send_purchase_success($augOrderRes) {
-      $content = (new InvoiceAugmontController)->getInvoiceData($augOrderRes);
+      try {
+        $content = (new InvoiceAugmontController)->getInvoiceData($augOrderRes);
 
-      $dataTemp = $content->result->data;
-      $pdf = (new InvoiceAugmontController)->generatePDF($content);
-      
-      $mailInfo = new \stdClass();
-      $mailInfo->recieverName = $dataTemp->userInfo->name;
-      $mailInfo->sender = "Optymoney";
-      $mailInfo->senderCompany = "Optymoney";
-      $mailInfo->to = $dataTemp->userInfo->email;
-      $mailInfo->subject = "Optymoney - Invoice : ".$dataTemp->invoiceNumber;
-      $mailInfo->name = "Optymoney";
-      $mailInfo->from = "no-reply@optymoney.com";
-      $mailInfo->template = "email-templates.purchase-success";
-      $mailInfo->attachment = "yes";
-      $mailInfo->files = $pdf->download($augOrderRes.'_pdf.pdf');
-      $mailInfo->metalType = $dataTemp->metalType;
-      $mailInfo->amount = $dataTemp->netAmount;
-
-      return Mail::to($dataTemp->userInfo->email)->send(new OptyEmail($mailInfo));
+        $dataTemp = $content->result->data;
+        $pdf = (new InvoiceAugmontController)->generatePDF($content);
+        
+        $mailInfo = new \stdClass();
+        $mailInfo->recieverName = $dataTemp->userInfo->name;
+        $mailInfo->sender = "Optymoney";
+        $mailInfo->senderCompany = "Optymoney";
+        $mailInfo->to = $dataTemp->userInfo->email;
+        $mailInfo->subject = "Optymoney - Invoice : ".$dataTemp->invoiceNumber;
+        $mailInfo->name = "Optymoney";
+        $mailInfo->from = "no-reply@optymoney.com";
+        $mailInfo->template = "email-templates.purchase-success";
+        $mailInfo->attachment = "yes";
+        $mailInfo->files = $pdf;
+        $mailInfo->filename = "OPTY_".$dataTemp->invoiceNumber."_invoice";
+        $mailInfo->metalType = $dataTemp->metalType;
+        $mailInfo->amount = $dataTemp->netAmount;
+        $emailData = new OptyEmail($mailInfo);
+        $emailStat = Mail::to($dataTemp->userInfo->email)->send($emailData);
+        \Log::channel('accounts')->info("send_purchase_success: ".json_encode(['user' => $dataTemp->userInfo->email, 'result' => $emailStat]));
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $dataTemp->userInfo->email, 'function' => "send_subscription_success", 'output' => $e]));
+        return $e->getMessage();
+      }
     }
 
     public function send_subscription_success($email, $custname, $message, $subscriptionData) {
-
+      try {
         $mailInfo = new \stdClass();
         $mailInfo->recieverName = $email;
         $mailInfo->sender = "Optymoney";
@@ -159,35 +180,47 @@ class EmailController extends Controller
         // $mailInfo->cc = "ci@email.com";
         // $mailInfo->bcc = "jim@email.com";
 
-        Mail::to($email)->send(new OptyEmail($mailInfo));
+        $emailStat = Mail::to($email)->send(new OptyEmail($mailInfo));
+        \Log::channel('accounts')->info("send_subscription_success: ".json_encode(['user' => $email, 'result' => $emailStat]));
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $email, 'function' => "send_subscription_success", 'output' => $e]));
+        return $e->getMessage();
+      }
     }
 
     public function send_subscription_failed($email, $custname, $message, $planData, $subscriptionId) {
-      $mailInfo = new \stdClass();
-      $mailInfo->recieverName = $email;
-      $mailInfo->sender = "Optymoney";
-      $mailInfo->senderCompany = "Optymoney";
-      $mailInfo->to = $email;
-      $mailInfo->subject = "Subscription Payment Failed for OPTYMONEY";
-      $mailInfo->name = "Optymoney";
-      $mailInfo->from = "no-reply@optymoney.com";
-      $mailInfo->template = "email-templates.subscription-pending";
-      $mailInfo->subscriptionPlan = $planData->name;
-      $mailInfo->subscriptionDescription = $planData->description;
-      $mailInfo->attachment = "no";
-      $mailInfo->message = $message;
-      $mailInfo->subscriptionId = $subscriptionId;
-      // $mailInfo->metalType = $subscriptionData->notes->metalType;
-      $mailInfo->amount = $planData->amount;
-      $mailInfo->customerName = $custname;
-      // dd($mailInfo);
-      // $mailInfo->cc = "ci@email.com";
-      // $mailInfo->bcc = "jim@email.com";
+      try {
+        $mailInfo = new \stdClass();
+        $mailInfo->recieverName = $email;
+        $mailInfo->sender = "Optymoney";
+        $mailInfo->senderCompany = "Optymoney";
+        $mailInfo->to = $email;
+        $mailInfo->subject = "Subscription Payment Failed for OPTYMONEY";
+        $mailInfo->name = "Optymoney";
+        $mailInfo->from = "no-reply@optymoney.com";
+        $mailInfo->template = "email-templates.subscription-pending";
+        $mailInfo->subscriptionPlan = $planData->name;
+        $mailInfo->subscriptionDescription = $planData->description;
+        $mailInfo->attachment = "no";
+        $mailInfo->message = $message;
+        $mailInfo->subscriptionId = $subscriptionId;
+        // $mailInfo->metalType = $subscriptionData->notes->metalType;
+        $mailInfo->amount = $planData->amount;
+        $mailInfo->customerName = $custname;
+        // dd($mailInfo);
+        // $mailInfo->cc = "ci@email.com";
+        // $mailInfo->bcc = "jim@email.com";
 
-      Mail::to($email)->send(new OptyEmail($mailInfo));
-    }
+        $emailStat = Mail::to($email)->send(new OptyEmail($mailInfo));
+        \Log::channel('accounts')->info("send_subscription_failed: ".json_encode(['user' => $email, 'result' => $emailStat]));
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info($request->session()->get('id')." : ".$e->getMessage());
+        return $e->getMessage();
+      }
+  }
 
-    public function send_subscription_halted($email, $custname, $message, $planData, $subscriptionId) {
+  public function send_subscription_halted($email, $custname, $message, $planData, $subscriptionId) {
+    try {
       $mailInfo = new \stdClass();
       $mailInfo->recieverName = $email;
       $mailInfo->sender = "Optymoney";
@@ -209,30 +242,40 @@ class EmailController extends Controller
       // $mailInfo->cc = "ci@email.com";
       // $mailInfo->bcc = "jim@email.com";
 
-      Mail::to($email)->send(new OptyEmail($mailInfo));
+      $emailStat = Mail::to($email)->send(new OptyEmail($mailInfo));
+      \Log::channel('accounts')->info("send_subscription_halted: ".json_encode(['user' => $email, 'result' => $emailStat]));
+    } catch (\Exception $e) {
+      \Log::channel('itsolution')->info(json_encode(['input' => $email, 'function' => "send_subscription_halted", 'output' => $e]));
+      return $e->getMessage();
     }
+}
     
-    public function send_kyc_upload($userdata) {
-      $mailInfo = new \stdClass();
-      $mailInfo->recieverName = $userdata['cust_name'];
-      $mailInfo->sender = "Optymoney";
-      $mailInfo->senderCompany = "Optymoney";
-      $mailInfo->to = $userdata['login_id'];
-      $mailInfo->subject = "Optymoney - KYC Upload";
-      $mailInfo->name = "Optymoney";
-      $mailInfo->from = "no-reply@optymoney.com";
-      $mailInfo->template = "email-templates.kyc_upload";
-      $mailInfo->attachment = "no";
-      $mailInfo->files = "";
-      $mailInfo->metalType = "";
-      $mailInfo->amount = "";
-      // $mailInfo->cc = "ci@email.com";
-      // $mailInfo->bcc = "jim@email.com";
 
-      Mail::to($userdata['login_id'])
-        ->send(new OptyEmail($mailInfo));
-      
-      return $this->emailReport($userdata['login_id'], "KYC Document Upload", "", "SUCCESS", 0, "");
+    public function send_kyc_upload($userdata) {
+      try {
+        $mailInfo = new \stdClass();
+        $mailInfo->recieverName = $userdata['cust_name'];
+        $mailInfo->sender = "Optymoney";
+        $mailInfo->senderCompany = "Optymoney";
+        $mailInfo->to = $userdata['login_id'];
+        $mailInfo->subject = "Optymoney - KYC Upload";
+        $mailInfo->name = "Optymoney";
+        $mailInfo->from = "no-reply@optymoney.com";
+        $mailInfo->template = "email-templates.kyc_upload";
+        $mailInfo->attachment = "no";
+        $mailInfo->files = "";
+        $mailInfo->metalType = "";
+        $mailInfo->amount = "";
+        // $mailInfo->cc = "ci@email.com";
+        // $mailInfo->bcc = "jim@email.com";
+
+      $emailStat = Mail::to($userdata['login_id'])->send(new OptyEmail($mailInfo));
+        \Log::channel('accounts')->info("send_kyc_upload: ".json_encode(['user' => $userdata, 'result' => $emailStat]));
+        return $this->emailReport($userdata['login_id'], "KYC Document Upload", "", "SUCCESS", 0, "");
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $userdata, 'function' => "send_kyc_upload", 'output' => $e]));
+        return $e->getMessage();
+      }
     }
   
     public function send_itrv_status($userdata) {
@@ -253,19 +296,25 @@ class EmailController extends Controller
       
       return $this->emailReport($userdata['login_id'], "ITRV Uploaded", "", "SUCCESS", 0, "");
     }
-
+  
     public function emailReport($email, $email_type, $email_content, $email_status, $email_otp, $email_verification) {
-      $emails = new Emails;
-      $emails->emailAddress = $email;
-      $emails->email_type = $email_type;
-      $emails->email_content = $email_content;
-      $emails->email_status = $email_status;
-      $emails->email_otp = $email_otp;
-      $emails->email_verification = $email_verification;
-      if($emails->save()) {
-        return "SUCCESS";
-      } else {
-        return "FAILURE";
+      try {
+        $emails = new Emails;
+        $emails->emailAddress = $email;
+        $emails->email_type = $email_type;
+        $emails->email_content = $email_content;
+        $emails->email_status = $email_status;
+        $emails->email_otp = $email_otp;
+        $emails->email_verification = $email_verification;
+        if($emails->save()) {
+          \Log::channel('accounts')->info("emailReport: ".json_encode(['user' => $email]));
+          return "SUCCESS";
+        } else {
+          return "FAILURE";
+        }
+      } catch (\Exception $e) {
+        \Log::channel('itsolution')->info(json_encode(['input' => $email, 'function' => "emailReport", 'output' => $e]));
+        return $e->getMessage();
       }
     }
 
@@ -289,6 +338,7 @@ class EmailController extends Controller
 
       Mail::to($email)->send(new OptyEmail($mailInfo));
   }
+    
 
   public function send_subscription_success_pre($email, $custname, $message) {
 

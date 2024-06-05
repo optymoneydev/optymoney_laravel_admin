@@ -33,7 +33,7 @@ setTimeout(function(){
                         console.log(res);
                         if(res['status_code']==200 || res['status_code']==201) {
                             $('#addemailFormat')[0].reset();
-                            $('#emailFormatForm_modal').modal('hide');
+                            $('#newForm').modal('hide');
                             createNoty(res['message'], 'success');
                             emailFormatsData();
                         } else {
@@ -65,7 +65,7 @@ setTimeout(function(){
                     },
                     success: function (response) {
                         // var res = JSON.parse(response);
-                        $('#emailFormatForm_modal').modal('show');
+                        $('#newForm').modal('show');
                         $.each(response, function (key, val) {
                             if(key=="emailformat_content") {
                                 $('#emailFormatContent_sample').empty();
@@ -160,7 +160,7 @@ setTimeout(function(){
                             {
                                 text: 'New Email Format',
                                 action: function ( e, dt, node, config ) {
-                                    $('#emailFormatForm_modal').modal("show");
+                                    $('#newForm').modal("show");
                                     $('#content').html(defaultContentData);
                                     $('#addemailFormat')[0].reset();
                                 }

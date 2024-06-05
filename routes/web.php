@@ -18,6 +18,7 @@ use App\Http\Controllers\cms\EmailFormatController;
 use App\Http\Controllers\cms\BlogsController;
 use App\Http\Controllers\cms\FAQController;
 use App\Http\Controllers\cms\HelpController;
+use App\Http\Controllers\cms\NewsLetterController;
 use App\Http\Controllers\EA\EAController;
 use App\Http\Controllers\ECA\ECAController;
 use App\Http\Controllers\Subscription\SubscriptionController;
@@ -51,7 +52,19 @@ use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\logs\LogsController;
 use App\Mail\TestAmazonSes;
 
+Route::get('r', function()
+{
+    header('Content-Type: application/excel');
+    header('Content-Disposition: attachment; filename="routes.csv"');
 
+    $routes = Route::getRoutes();
+    $fp = fopen('php://output', 'w');
+    fputcsv($fp, ['METHOD', 'URI', 'NAME', 'ACTION']);
+    foreach ($routes as $route) {
+        fputcsv($fp, [head($route->methods()) , $route->uri(), $route->getName(), $route->getActionName()]);
+    }
+    fclose($fp);
+});
 
 Route::group(['middleware' => ['AuthCheck']], function() {
     Route::prefix('dashboard')->group(function () {
@@ -170,6 +183,12 @@ Route::group(['middleware' => ['AuthCheck']], function() {
         Route::post('smsTemplateById', [SMSTemplateController::class, 'smsTemplateById'])->name('smsTemplateById');
         Route::post('deleteSMSById', [SMSTemplateController::class, 'deleteSMSById'])->name('deleteSMSById');
         
+        Route::view('newsletter', 'cms.newsletter-cards')->name('newsletter');
+        Route::post('saveNewsLetter', [NewsLetterController::class, 'saveNewsLetter'])->name('saveNewsLetter');
+        Route::get('getNewsLetter', [NewsLetterController::class, 'getNewsLetter'])->name('getNewsLetter'); 
+        Route::post('newsLetterById', [NewsLetterController::class, 'newsLetterById'])->name('newsLetterById');
+        Route::post('deleteNewsLetterById', [NewsLetterController::class, 'deleteNewsLetterById'])->name('deleteNewsLetterById');
+
     });
 
     Route::prefix('marketing')->group(function () {
@@ -371,7 +390,7 @@ Route::prefix('cron')->group(function () {
     
 });
 
-Route::post('webhook', 'RazorpayWebhookController@handle');
+// Route::post('webhook', 'RazorpayWebhookController@handle');
 
 Route::prefix('augmont')->group(function () {
     Route::post('orderResponse', [BuyAugmontController::class, 'orderResponse'])->name('augmont.orderResponse'); 

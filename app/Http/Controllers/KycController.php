@@ -1,7 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 Use App\Models\Bfsi_users_detail;
 Use App\Models\Bfsi_user;
@@ -18,64 +18,81 @@ class KycController extends Controller
 {
     
     public function augKYCUpload(Request $request) {
-        
-        $id = $request->session()->get('id');
-        $userData = Bfsi_user::where('pk_user_id', $request->session()->get('id'))->get(['augid']);
+        $user = auth('userapi')->user();
+        if($user) {
+            $id = $user->pk_user_id;
+            $userData = Bfsi_user::where('pk_user_id', $id)->get(['augid']);
 
-        $tokentype = "Bearer ";
-        $authToken = $tokentype.(new AugmontController)->merchantAuth();
+            $tokentype = "Bearer ";
+            $authToken = $tokentype.(new AugmontController)->merchantAuth();
 
-        $headers = [
-            'AccessToken' => 'key',
-            'Authorization' => $authToken,
-            'Accept' => 'application/json'
-        ];
+            $headers = [
+                'AccessToken' => 'key',
+                'Authorization' => $authToken,
+                'Accept' => 'application/json'
+            ];
 
-        $newDate = date("Y-m-d", strtotime($request->panDOB));
-        $file               = request('panFile');
-        $file_path          = $file->getPathname();
-        $file_mime          = $file->getMimeType('image');
-        $file_uploaded_name = $file->getClientOriginalName();
-        $form_params = [
-            [
-                'name'      => 'panAttachment',
-                'filename' => $file_uploaded_name,
-                'filepath' => $file_path,
-                'Mime-Type'=> $file_mime,
-                'contents' => fopen($file_path, 'r'),
-            ]
-        ];
-        $query = [
-            'panNumber' => $request->panNumber,
-            'dateOfBirth' => $newDate,
-            'nameAsPerPan' => $request->panName,
-            'status' => "approved"
-        ];
+            $newDate = date("Y-m-d", strtotime($request->panDOB));
+            $file               = request('panFile');
+            $file_path          = $file->getPathname();
+            $file_mime          = $file->getMimeType('image');
+            $file_uploaded_name = $file->getClientOriginalName();
+            $form_params = [
+                [
+                    'name'      => 'panAttachment',
+                    'filename' => $file_uploaded_name,
+                    'filepath' => $file_path,
+                    'Mime-Type'=> $file_mime,
+                    'contents' => fopen($file_path, 'r'),
+                ]
+            ];
+            $query = [
+                'panNumber' => $request->panNumber,
+                'dateOfBirth' => $newDate,
+                'nameAsPerPan' => $request->panName,
+                'status' => "approved"
+            ];
 
-        $fileName = time().'.'.$request->panFile->extension();  
-        $request->panFile->move(public_path('uploads'), $file_uploaded_name);
+            $fileName = time().'.'.$request->panFile->extension();  
+            $request->panFile->move(public_path('uploads'), $file_uploaded_name);
 
-        $response =  (new AugmontController)->clientFileUploadRequests($query, $form_params, 'merchant/v1/users/'.$userData[0]->augid.'/kyc');
-        if(!isset($response->errors)) {
-            $content = $response->result->data;
+            $response =  (new AugmontController)->clientFileUploadRequests($query, $form_params, 'merchant/v1/users/'.$userData[0]->augid.'/kyc');
+            if(!isset($response->errors)) {
+                $content = $response->result->data;
+            } else {
+                $content = null;
+            }
+            $upstatus = Bfsi_users_detail::where('fr_user_id', $id)->update([
+                'pan_number' => $request->panNumber
+            ]);
+            if($response->statusCode==200) {
+                $ins = $this->insertKyc($id, "", $content->uniqueId, $content->panNumber, $file_uploaded_name, "", "", "uploaded", $content->status, "", "", $content->rejectedReason, "", "", "", "", "", $content->errorCode, "aug");
+                $userData = (new UsersController)->getUserDataByUID($id);
+                $res2 = (new EmailController)->send_kyc_upload($userData, "KYC_UPLOAD_AUGMONT");
+                $data = [
+                    "statusCode" => 200,
+                    "data" => $ins,
+                    "message" => "KYC Updated"
+                ];
+                return $data;
+                // $orderData = session()->get('orderData');
+                // $var2 = str_replace(".", "/", $orderData['redirectURL']);
+                // return View::make($orderData['redirectURL'], $orderData);
+            } else {
+                $ins = $this->insertKyc($id, "", $userData[0]->augid, $request->panNumber, $file_uploaded_name, "", "", "uploaded", "approved", "", "", $response->errors->status[0]->message, "", "", "", "", "", $response->errors->status[0]->code, "aug");
+                $data = [
+                    "statusCode" => 500,
+                    "data" => $response,
+                    "message" => "KYC Upload failed"
+                ];
+                return $data;
+            }
         } else {
-            $content = null;
-        }
-        $upstatus = Bfsi_users_detail::where('fr_user_id', $id)->update([
-            'pan_number' => $request->panNumber
-        ]);
-        if($response->statusCode==200) {
-            $ins = $this->insertKyc($id, "", $content->uniqueId, $content->panNumber, $file_uploaded_name, "", "", "uploaded", $content->status, "", "", $content->rejectedReason, "", "", "", "", "", $content->errorCode, "aug");
-            $userData = (new UsersController)->getUserDataByUID($id);
-            $res2 = (new EmailController)->send_kyc_upload($userData, "KYC_UPLOAD_AUGMONT");
-            $orderData = session()->get('orderData');
-            $var2 = str_replace(".", "/", $orderData['redirectURL']);
-            return View::make($orderData['redirectURL'], $orderData);
-        } else {
-            $ins = $this->insertKyc($id, "", $userData[0]->augid, $request->panNumber, $file_uploaded_name, "", "", "uploaded", "approved", "", "", $response->errors->status[0]->message, "", "", "", "", "", $response->errors->status[0]->code, "aug");
-            $orderData = session()->get('orderData');
-            $var2 = str_replace(".", "/", $orderData['redirectURL']);
-            return View::make($orderData['redirectURL'], $orderData);
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
+            ];
+            return $data;
         }
     }
 
@@ -131,12 +148,12 @@ class KycController extends Controller
     }
 
     public function aug_kyc_db_check($id) {
-        $augStatus = KycStatus::where('fr_user_id', $id)->get(['panAttachment', 'aug_kyc_status', 'aug_doc_submit'])->first();
+        $augStatus = KycStatus::where('fr_user_id', $id)->orderBy('id', 'DESC')->take(1)->get(['uniqueId','panAttachment', 'aug_kyc_status', 'aug_doc_submit'])->first();
         if(isset($augStatus)) {
             $aug_kyc_status = $augStatus['aug_kyc_status'];
             $aug_doc_submit = $augStatus['aug_doc_submit'];
             $panAttachment = $augStatus['panAttachment'];
-            if($aug_doc_submit=="" || $panAttachment=="") {
+            if($aug_doc_submit=="") {
                 return null;
             } else {
                 if($aug_kyc_status=="" || $aug_kyc_status=="pending" || $aug_kyc_status=="Pending") {

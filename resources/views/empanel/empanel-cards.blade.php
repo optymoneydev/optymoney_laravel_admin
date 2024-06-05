@@ -53,7 +53,7 @@
 									<td>{{ $article['education'] }}</td>
 									<td>{{ ucfirst($article['interest']) }}</td>
 									<td>{{ ucfirst($article['about_yourself']) }}</td>
-									<td> </td>
+									<td><a href="">{{ ucfirst($article['cv']) }}</a> </td>
 								</tr>
 								@endforeach
 							</tbody>

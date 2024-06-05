@@ -18,6 +18,7 @@ use App\Http\Controllers\pms\PMSController;
 use App\Http\Controllers\insurance\InsuranceController;
 use App\Http\Controllers\Augmont\OrdersAugmontController;
 use App\Http\Controllers\Augmont\BuyAugmontController;
+use App\Http\Controllers\Augmont\SellAugmontController;
 use App\Http\Controllers\Subscription\SubscriptionController;
 use App\Http\Controllers\cms\FAQController;
 use App\Http\Controllers\cms\BlogsController;
@@ -25,6 +26,10 @@ use App\Http\Controllers\marketing\EventController;
 use App\Http\Controllers\Nsdl\SignzyController;
 use App\Http\Controllers\mf\BSEController;
 use App\Http\Controllers\mf\StarMFFileUploadServiceController;
+use App\Http\Controllers\Payments\RazorpaySubscriptionController;
+use App\Http\Controllers\Payments\RazorpayController;
+use App\Http\Controllers\KycController;
+use App\Http\Controllers\cms\NewsLetterController;
 use App\Mail\OptyEmail;
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +52,7 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
     Route::group(['prefix' => 'customer', 'namespace' => 'customer'],function () {
         Route::post('/login', [UserAuthController::class, 'login']);
         Route::post('/simple_signup', [UserAuthController::class, 'simple_signup']);
+        Route::post('/simple_signup_step2', [UserAuthController::class, 'simple_signup_step2']);
         Route::post('/career_signup', [UserAuthController::class, 'career_signup']);
         Route::post('/contact', [UsersController::class, 'saveContactUsForm']);
         Route::post('/subscriptionAPI', [SubscriptionController::class, 'subscriptionAPI']);
@@ -65,6 +71,8 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
 
         Route::post('getCity', [AugmontController::class, 'getCity']); 
         
+        Route::post('requestFPOTP', [AuthController::class, 'requestFPOTP'])->name('authentication.requestFPOTP'); 
+        Route::post('updateFP', [AuthController::class, 'updateFP'])->name('authentication.updateFP'); 
 
         Route::group(['middleware' => ['cors', 'jwt.auth']], function() {
             // Route::post('/logout', [UserAuthController::class, 'logout']);
@@ -75,13 +83,14 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
             Route::post('/logout', [UserAuthController::class, 'logout']);
             Route::get('/tokenCheck', [UserAuthController::class, 'tokenCheck']);
             Route::get('/user-profile', [UserAuthController::class, 'userProfile']);
-            Route::get('/bankAccountsAPI', [UsersBankController::class, 'bankAccountsAPI']);
+            Route::get('/bankAccountsAPI', [UsersBankController::class, 'allUserBanks']);
             Route::post('/savebankAccountAPI', [UsersBankController::class, 'savebankAccountAPI']);
             Route::get('/getBankAccountByIdAPI/{id}', [UsersBankController::class, 'getBankAccountByIdAPI']);
             Route::get('/deleteBankAccountByIdAPI/{id}', [UsersBankController::class, 'deleteBankAccountByIdAPI']);
 
             Route::post('/saveBasicInfoAPI', [UserAuthController::class, 'saveBasicInfoAPI']);
             Route::post('/uploadProfileImgAPI', [UserAuthController::class, 'uploadProfileImgAPI']);
+            Route::post('/saveBasicInfoFromFoldAPI', [UserAuthController::class, 'saveBasicInfoFromFoldAPI']);
             
             Route::post('/checkPAN', [UserAuthController::class, 'checkPAN']);
             Route::post('/requestOTPForVerification', [UserAuthController::class, 'requestOTPForVerification']);
@@ -103,12 +112,43 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
             // Route::get('/getDocs', [PMSController::class, 'getDocs']); 
             Route::group(['middleware' => ['cors', 'jwt.verify']], function() {
                 Route::get('/getAugOrdersByUserAPI1', [OrdersAugmontController::class, 'getAugOrdersByUserAPI']); 
-                Route::get('/getMetalCountAPI1', [AugmontController::class, 'getMetalCountAPI']); 
-                Route::post('silverBuy', [BuyAugmontController::class, 'buyAugmont'])->name('augmont.buyAugmont');
+                Route::get('/getMetalCountAPI', [AugmontController::class, 'getMetalCountAPI']); 
+                Route::post('silverBuy', [BuyAugmontController::class, 'buySilverAugmont'])->name('augmont.buySilverAugmont');
                 Route::post('createOrder', [BuyAugmontController::class, 'createOrder'])->name('augmont.createOrder');
                 Route::post('saveOrder', [BuyAugmontController::class, 'saveOrder'])->name('augmont.saveOrder');
+                Route::post('goldBuy', [BuyAugmontController::class, 'buyGoldAugmont'])->name('augmont.buyGoldAugmont'); 
+
+                Route::get('getInvoiceData/{invoice}', [InvoiceAugmontController::class, 'getInvoiceData'])->name('augmont.getInvoiceData');
+                Route::post("silverSell", function(Request $request){
+                    $data = ["redirectURL" => "../augmont/sellSilver", "silverGrams" => $request->silverSellGrams, "silverAmount" => $request->silverSellAmount, "silverPrice" => $request->silverSellPrice, "silverGST" => $request->silverSellGST, "silverBlockId" => $request->silverSellBlockId];
+                    return $data;
+                });
+        
+                Route::post("goldSell", function(Request $request){
+                    $data = ["redirectURL" => "../augmont/sellGold", "goldGrams" => $request->goldSellGrams, "goldAmount" => $request->goldSellAmount, "goldPrice" => $request->goldSellPrice, "goldGST" => $request->goldSellGST, "goldBlockId" => $request->goldSellBlockId];
+                    return $data;
+                });
+                Route::post('saveSellOrder', [SellAugmontController::class, 'saveSellOrder'])->name('augmont.saveSellOrder');
+
+                Route::post('goldSipBuy', [BuyAugmontController::class, 'buySIPGoldAugmont'])->name('augmont.buySIPGoldAugmont'); 
+                Route::post('silverSipBuy', [BuyAugmontController::class, 'buySIPSilverAugmont'])->name('augmont.buySIPSilverAugmont'); 
+
+                Route::post('createSipOrder', [BuyAugmontController::class, 'createSipOrder'])->name('augmont.createSipOrder');
+                Route::post('saveSipOrder', [BuyAugmontController::class, 'saveSipOrder'])->name('augmont.saveSipOrder');
+
+                Route::get('sipList', [AugmontController::class, 'sipList'])->name('augmont.sipList'); 
+                Route::get('api_orders', [AugmontController::class, 'api_orders'])->name('augmont.api_orders');
             });
         });
+
+        Route::prefix('users')->group(function () {
+            Route::get('userAccount', [UsersController::class, 'getUserData'])->name('userAccount'); 
+            Route::post('createBankAccount', [UsersBankController::class, 'createBankAccount'])->name('users.createBankAccount');
+            Route::get('allUserBanks', [UsersBankController::class, 'allUserBanks'])->name('users.allUserBanks');
+            Route::post('profileAddressUpdate', [AuthController::class, 'profileAddressUpdate'])->name('profileAddressUpdate');
+        });
+
+        Route::post('kycfileUpload', [KycController::class, 'augKYCUpload'])->name('kycfileUpload');
     });
 
     Route::group(['prefix' => 'itr', 'namespace' => 'itr'],function () {
@@ -129,6 +169,7 @@ Route::group(['middleware' => ['api', 'cors']], function ($router) {
         Route::get('getBlogsData/{category}/{start}/{end}', [BlogsController::class, 'getBlogsData'])->name('getBlogsData');
         Route::get('getBlogs/{slug}', [BlogsController::class, 'getBlogDataBySlug'])->name('getBlogDataBySlug');
         Route::get('getBlogsByCategory/{category}', [BlogsController::class, 'getBlogsByCategory'])->name('getBlogsByCategory');
+        Route::get('getLatestBlogs/{count}', [BlogsController::class, 'getLatestBlogs'])->name('getLatestBlogs');
         
     });
 
@@ -226,12 +267,15 @@ Route::prefix('mf')->group(function () {
 // });
 
 Route::get('getFaqs', [FAQController::class, 'getFaq'])->name('getFaqs'); 
+Route::get('getFaqsByCategory/{category}', [FAQController::class, 'getFaqByCategory'])->name('getFaqByCategory'); 
 
-Route::group(['middleware' => ['cors', 'json.response']], function () {
-    Route::post('/login', 'AuthController@login')->name('login.api');
-    Route::post('/register','AuthController@register')->name('register.api');
-    Route::post('/logout', 'AuthController@logout')->name('logout.api');
-});
+Route::get('getNewsLetterAPI', [NewsLetterController::class, 'getNewsLetterAPI'])->name('getNewsLetterAPI'); 
+
+// Route::group(['middleware' => ['cors', 'json.response']], function () {
+//     Route::post('/login', 'AuthController@login')->name('login.api');
+//     Route::post('/register','AuthController@register')->name('register.api');
+//     Route::post('/logout', 'AuthController@logout')->name('logout.api');
+// });
 
 Route::prefix('cronapi')->group(function () {  
     // Route::view('updateNav', 'cron.updateNav-cards')->name('updateNav');
@@ -270,11 +314,13 @@ Route::prefix('mf')->group(function () {
 });
 
 Route::prefix('augmont')->group(function () {
+    Route::post('/home', [AugmontController::class, 'redirectToGold']);
     Route::get('merchantAuth', [AugmontController::class, 'merchantAuth'])->name('augmont.merchantAuth'); 
     Route::get('currentRates', [RatesAugmontController::class, 'currentRates'])->name('augmont.currentRates');
     Route::get('sipRates', [RatesAugmontController::class, 'sipRates'])->name('augmont.sipRates');
     Route::post('getCity', [AugmontController::class, 'getCity'])->name('augmont.getCity'); 
     Route::get('buyInvoice/{invoice}', [InvoiceAugmontController::class, 'buyInvoice'])->name('augmont.buyInvoice'); 
+    Route::get('getInvoiceData/{invoice}', [InvoiceAugmontController::class, 'getInvoiceData'])->name('augmont.getInvoiceData'); 
     Route::get('api_orders/{uid}', [AugmontController::class, 'api_orders'])->name('augmont.api_orders'); 
     Route::get('api_sipList/{uid}', [AugmontController::class, 'api_sipList'])->name('augmont.api_sipList'); 
     Route::get('api_metalCount/{uid}', [AugmontController::class, 'api_metalCount'])->name('augmont.api_metalCount'); 
@@ -289,6 +335,23 @@ Route::prefix('users')->group(function () {
     Route::get('api_userprofile/{uid}', [UsersController::class, 'getUserDataByUID'])->name('users.api_userprofile');
    
     Route::get('getDayWiseNewReg', [UsersController::class, 'getDayWiseNewReg'])->name('users.getDayWiseNewReg');
+});
+
+Route::prefix('razorpay')->group(function () {
+    Route::post('subscriptionEvents', [RazorpaySubscriptionController::class, 'subscriptionEvents'])->name('augmont.subscriptionEvents');
+    Route::post('paymentWebhooks', [RazorpaySubscriptionController::class, 'paymentWebhooks'])->name('augmont.paymentWebhooks');
+    Route::post('orderEventsWebhooks', [RazorpaySubscriptionController::class, 'orderEventsWebhooks'])->name('augmont.orderEventsWebhooks');
+    Route::post('invoiceEventsWebhooks', [RazorpaySubscriptionController::class, 'invoiceEventsWebhooks'])->name('augmont.invoiceEventsWebhooks');
+    Route::post('settlementEventsWebhooks', [RazorpaySubscriptionController::class, 'settlementEventsWebhooks'])->name('augmont.settlementEventsWebhooks');
+    Route::post('fund_accountEventsWebhooks', [RazorpaySubscriptionController::class, 'fund_accountEventsWebhooks'])->name('augmont.fund_accountEventsWebhooks');
+    Route::post('payoutEventsWebhooks', [RazorpaySubscriptionController::class, 'payoutEventsWebhooks'])->name('augmont.payoutEventsWebhooks');
+    Route::post('refundEventsWebhooks', [RazorpaySubscriptionController::class, 'refundEventsWebhooks'])->name('augmont.refundEventsWebhooks');
+    Route::post('transferEventsWebhooks', [RazorpaySubscriptionController::class, 'transferEventsWebhooks'])->name('augmont.transferEventsWebhooks');
+    Route::post('accountEventsWebhooks', [RazorpaySubscriptionController::class, 'accountEventsWebhooks'])->name('augmont.accountEventsWebhooks');
+    Route::post('paymentLinkEventsWebhooks', [RazorpaySubscriptionController::class, 'paymentLinkEventsWebhooks'])->name('augmont.paymentLinkEventsWebhooks');
+    
+    Route::get('fetchAllCustomers', [RazorpayController::class, 'fetchAllCustomers'])->name('augmont.fetchAllCustomers');
+    
 });
 
 Route::get('getfile/{uid}/{filename}', [GeneralController::class, 'getfile'])->name('getfile');

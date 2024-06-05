@@ -163,6 +163,33 @@ class ITRController extends Controller
 		return $fetch_portfolio;
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/itr/getDocs",
+        * operationId="getDocs",
+        * tags={"ITR"},
+        * summary="Get ITR details by user",
+        * description="Get ITR details by user",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function getDocs(Request $request) {
         $data = [
             "statusCode" => 401,
@@ -195,7 +222,65 @@ class ITRController extends Controller
             return $data;
         }
     }
-
+    
+    /**
+        * @OA\Post(
+        * path="/api/itr/itrRegistration",
+        * operationId="itrRegistration",
+        * tags={"ITR"},
+        * summary="ITR Registration",
+        * description="ITR Registration",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"fname", "uid", "taxPlanForm", "hd_mobile", "hd_email", "father_name", "sex", "pan", "aadhaar", "description", "itr_e", "fileitr", "addfileitr", "noticeCopy", "itrfiledcopy", "addeassest", "bank", "acno", "ifsc", "c_acnt", "f_travel", "e_bill"},
+        *               @OA\Property(property="fname", type="text"),
+        *               @OA\Property(property="taxPlanForm", type="text"),
+        *               @OA\Property(property="hd_mobile", type="text"),
+        *               @OA\Property(property="hd_email", type="email"),
+        *               @OA\Property(property="father_name", type="text"),
+        *               @OA\Property(property="sex", type="text"),
+        *               @OA\Property(property="pan", type="text"),
+        *               @OA\Property(property="aadhaar", type="text"),
+        *               @OA\Property(property="description", type="text"),
+        *               @OA\Property(property="itr_e", type="file"),
+        *               @OA\Property(property="fileitr", type="file"),
+        *               @OA\Property(property="addfileitr", type="file"),
+        *               @OA\Property(property="noticeCopy", type="file"),
+        *               @OA\Property(property="itrfiledcopy", type="file"),
+        *               @OA\Property(property="addeassest", type="file"),
+        *               @OA\Property(property="bank", type="text"),
+        *               @OA\Property(property="acno", type="text"),
+        *               @OA\Property(property="ifsc", type="text"),
+        *               @OA\Property(property="c_acnt", type="text"),
+        *               @OA\Property(property="f_travel", type="text"),
+        *               @OA\Property(property="e_bill", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="ITR Form submitted successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="ITR Form submitted successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function itrRegistrationAPI(Request $request) {
         $allowedfileExtension=['pdf','jpg','png','docx'];
         $user = auth('userapi')->user();

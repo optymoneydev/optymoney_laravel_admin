@@ -39,7 +39,6 @@ class VerificationController extends Controller
     }
 
     public function otp_verification_api($contact_no, $motp, $login_id, $eotp) {
-
         $sms = SMS::where([
                 'contact' => $contact_no,
                 'sms_otp' => $motp,
@@ -47,16 +46,15 @@ class VerificationController extends Controller
                 'sms_type' => 'OTPAPI'
             ])->orderBy("created_at", "desc")->first();
         $email = \App\Models\Emails::where([
-            'emailAddress' => $login_id,
-            'email_otp' => $eotp,
-            'email_verification' => 'PENDING',
-            'email_type' => 'OTPAPI'
-        ])->orderBy("created_at", "desc")->first();
-
-        if(isset($sms)) {
+                'emailAddress' => $login_id,
+                'email_otp' => $eotp,
+                'email_verification' => 'PENDING',
+                'email_type' => 'OTPAPI'
+            ])->orderBy("created_at", "desc")->first();
+        if($sms) {
             $sms->sms_verification = "VERIFIED";
             $sms->save();
-            if(isset($email)) {
+            if($email) {
                 $email->email_verification = "VERIFIED";
                 $email->save();
                 return "SUCCESS";

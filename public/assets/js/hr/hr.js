@@ -1,5 +1,6 @@
 "use strict";
 setTimeout(function(){
+    var oTable;
         (function($) {
             "use strict";
             var urlpath = window.location.pathname;
@@ -216,7 +217,6 @@ setTimeout(function(){
                     }  
                 });
             });
-
         })(jQuery);
 
         function rolesData() {
@@ -276,10 +276,10 @@ setTimeout(function(){
                             { data : null, render: function (data, type,row) { 
                                 var viewDiv = '<div class="m-b-30"><div class="btn-group" role="group" aria-label="Button group with nested dropdown"><div class="btn-group" role="group"><button class="btn btn-primary dropdown-toggle" id="btnGroupDrop1" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Actions</button><div class="dropdown-menu" aria-labelledby="btnGroupDrop1">';
                                 if(viewOption) {
-                                    viewDiv = viewDiv+'<a href="hr/empCard'+row.pk_emp_id+'/view" class="dropdown-item">View</a>';
+                                    viewDiv = viewDiv+'<a href="empCard/'+row.pk_emp_id+'/view" class="dropdown-item">View</a>';
                                 }
                                 if(editOption) {
-                                    viewDiv = viewDiv+'<a href="hr/empCard/"'+row.pk_emp_id+'/edit" class="dropdown-item">Edit</a>';
+                                    viewDiv = viewDiv+'<a href="empCard/'+row.pk_emp_id+'/edit" class="dropdown-item">Edit</a>';
                                 }
                                 viewDiv = viewDiv+'</div></div></div></div>';
                                 if(viewOption == false && editOption == false) {

@@ -1,0 +1,6 @@
+composer require darkaonline/l5-swagger
+php artisan vendor:publish --provider "L5Swagger\L5SwaggerServiceProvider"
+php artisan l5-swagger:generate
+composer require nextapps/laravel-swagger-ui
+php artisan swagger-ui:install
+saiporala@Sais-MacBook-Air laravel_admintest % composer test

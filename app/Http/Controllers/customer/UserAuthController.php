@@ -35,9 +35,48 @@ class UserAuthController extends Controller
      * @return void
      */
     public function __construct() {
-        $this->middleware('auth:userapi', ['except' => ['tokenCheckgold', 'login', 'register', 'simple_signup', 'career_signup', 'validateRegistrationOTP', 'forgot_verifyOTP', 'forgot_sendOTP', 'forgot_submitPassword', 'contact', 'requestOTPAPI', 'verifyOTPAPI', 'createAccountAPI', 'validatePanAadhaarAPI', 'finishSignupAPI', 'interestedForm']]);
+        $this->middleware('auth:userapi', ['except' => ['tokenCheckgold', 'login', 'register', 'simple_signup', 'simple_signup_step2', 'career_signup', 'validateRegistrationOTP', 'forgot_verifyOTP', 'forgot_sendOTP', 'forgot_submitPassword', 'contact', 'requestOTPAPI', 'verifyOTPAPI', 'createAccountAPI', 'validatePanAadhaarAPI', 'finishSignupAPI', 'interestedForm']]);
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/simple_signup",
+        * operationId="simple_signup_1",
+        * tags={"User Registration"},
+        * summary="User Sign Up",
+        * description="need to provide information such as their fullname, email address and contact numberare mandatory to enter. With this function you will get the OTP for both contact number and email address.",
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"login_id", "contact_no", "fname"},
+        *               @OA\Property(property="login_id", type="email"),
+        *               @OA\Property(property="contact_no", type="text"),
+        *               @OA\Property(property="fname", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="OTP sent to your mobile number and email address, if not recived mail kindly check spam.",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="OTP sent to your mobile number and email address, if not recived mail kindly check spam.",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function simple_signup(Request $request) {
         if($request->eotp) {
             $result = (new VerificationController)->otp_verification_api($request->contact_no, $request->motp, $request->login_id, $request->eotp);
@@ -79,7 +118,6 @@ class UserAuthController extends Controller
                 'login_id' => $request->login_id
             ])->first();
             if($user) {
-                $result = "true";
                 $response = [
                     'status_code' => 422,
                     'message' => 'Already Verified',
@@ -125,6 +163,88 @@ class UserAuthController extends Controller
                 //     ];  
                 // }
             }
+        }
+        return $response;
+    }
+
+    /**
+        * @OA\Post(
+        * path="/api/customer/simple_signup_step2",
+        * operationId="simple_signup_step2",
+        * tags={"User Registration"},
+        * summary="User Sign Up Step 2",
+        * description="Make sure the email address and contact number are same as the simple signup. Submit the received OTPs to you contact number and email address including the password to create and activate the account.",
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"login_id", "contact_no", "fname", "eotp", "motp", "password", "repassword"},
+        *               @OA\Property(property="login_id", type="email"),
+        *               @OA\Property(property="contact_no", type="text"),
+        *               @OA\Property(property="fname", type="text"),
+        *               @OA\Property(property="eotp", type="text"),
+        *               @OA\Property(property="motp", type="text"),
+        *               @OA\Property(property="password", type="password"),
+        *               @OA\Property(property="repassword", type="password")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="OTP sent to your mobile number and email address, if not recived mail kindly check spam.",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="OTP sent to your mobile number and email address, if not recived mail kindly check spam.",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=417,
+        *          description="OTP Verification Failed",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
+    public function simple_signup_step2(Request $request) {
+        $result = (new VerificationController)->otp_verification_api($request->contact_no, $request->motp, $request->login_id, $request->eotp);
+        if($result === "SUCCESS") {
+            $data = $request->all();
+            $uid = $this->createVerifiedAccountNew($data, request()->headers->get('origin'))->pk_user_id;
+            $userStatus = Bfsi_users_detail::create([
+                'fr_user_id' => $uid,
+                'cust_name' => $data['fname'],
+                'contact_no' => $data['contact_no']
+            ]);
+            if($uid>0){
+                $response = [
+                    'status_code' => '201',
+                    'uid' => $uid,
+                    'message' => 'User profile created successfully',
+                    'steps' => 2
+                ];
+                return $this->login($request);
+            } else {
+                $response = [
+                'status_code' => '302',
+                'message' => 'User profile creation Failed',
+                ];
+            }
+        } else {
+            $response = [
+                'status_code' => '417',
+                'message' => 'OTP Verification Failed',
+                'verifyResult' => $result
+            ];
         }
         return $response;
     }
@@ -196,32 +316,33 @@ class UserAuthController extends Controller
         return $response;
     }
 
-    public function createVerifiedAccount($data, $source) {
-        return Bfsi_user::create([
-          'login_id' => $data['email'],
-          'communication_email' => "Permanent",
-          'user_status' => "Active",
-          'signup_ip' => getenv('REMOTE_ADDR'),
-          'signup_date' => \Carbon\Carbon::now()->timestamp,
-          'contact' => $data['contact_no'],
-          'steps' => '2',
-          'created_from' => $source
-        ]);
-    }
+    // public function createVerifiedAccount($data, $source) {
+    //     return Bfsi_user::create([
+    //       'login_id' => $data['email'],
+    //       'communication_email' => "Permanent",
+    //       'user_status' => "Active",
+    //       'signup_ip' => getenv('REMOTE_ADDR'),
+    //       'signup_date' => \Carbon\Carbon::now()->timestamp,
+    //       'contact' => $data['contact_no'],
+    //       'steps' => '2',
+    //       'created_from' => $source
+    //     ]);
+    // }
 
     public function createVerifiedAccountNew($data, $source) {
-        return Bfsi_user::create([
-            'login_id' => $data['login_id'],
-            'communication_email' => "Permanent",
-            'user_status' => "Active",
-            'signup_ip' => getenv('REMOTE_ADDR'),
-            'signup_date' => \Carbon\Carbon::now()->timestamp,
-            'contact' => $data['contact_no'],
-            'steps' => '2',
-            'created_from' => $source,
-            'password' => md5($data['password']),
-            'aug_pswd' => Hash::make($data['password']),
-        ]);
+        $bfsi_user = new Bfsi_user();
+        $bfsi_user->login_id = $data['login_id'];
+        $bfsi_user->communication_email = "Permanent";
+        $bfsi_user->user_status = "Active";
+        $bfsi_user->signup_ip = getenv('REMOTE_ADDR');
+        $bfsi_user->signup_date = \Carbon\Carbon::now()->timestamp;
+        $bfsi_user->contact = $data['contact_no'];
+        $bfsi_user->steps = "2";
+        $bfsi_user->created_from = $source;
+        $bfsi_user->password = Hash::make($data['password']);
+        $bfsi_user->aug_pswd = Hash::make($data['password']);
+        $bfsi_user->save();
+        return $bfsi_user;
     }
 
     public function createAccountAPI(Request $request) {  
@@ -406,16 +527,48 @@ class UserAuthController extends Controller
     }
 
     /**
-     * Get a JWT via given credentials.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+        * @OA\Post(
+        * path="/api/customer/login",
+        * operationId="authLogin",
+        * tags={"Login"},
+        * summary="User Login",
+        * description="Please enter the email address and the password to login into your account. Need to use the generated access token in the authorise option in the top right to access other APIs",
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"login_id", "password"},
+        *               @OA\Property(property="login_id", type="email"),
+        *               @OA\Property(property="password", type="password")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Login Successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Login Successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function login(Request $request){
         $validator = Validator::make($request->all(), [
             'login_id' => 'required|email',
             'password' => 'required|string|min:6',
         ]);
-
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
@@ -424,8 +577,8 @@ class UserAuthController extends Controller
                 'login_id' => $request->login_id,
                 'password' => md5($request->password)
             ])->first();
-            \Log::channel('logindata')->info(json_encode(['id' => $user->pk_user_id, 'ip' => $request->ip(), 'login' => Agent::device(), 'function' => "sip_payment"]));
             if(isset($user)) {
+                \Log::channel('logindata')->info(json_encode(['id' => $user->pk_user_id, 'ip' => $request->ip(), 'login' => Agent::device(), 'function' => "Gold Login"]));
                 if($user->password == md5($request->password)) { // If their password is still MD5
                     $user->password = Hash::make($request->password); // Convert to new format
                     $user->save();
@@ -441,9 +594,9 @@ class UserAuthController extends Controller
                     'password' => Hash::make($request->password)
                 ])->first();
                 if($user) {
-
+                    return $this->createNewToken($token);
                 } else {
-                    return response()->json(['error' => 'Unauthorized'], 401);
+                    return response()->json(['error' => 'email address and password are not valid'], 401);
                 }
             }
         } else {
@@ -460,16 +613,9 @@ class UserAuthController extends Controller
             ]));
             return $this->createNewToken($token);
             // return response()->json(['error' => 'Unauthorized'], 401);
-        }
-        return $this->createNewToken($token);
-        
+        }        
     }
 
-    /**
-     * Register a User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
     public function register(Request $request) {
 
         $validator = Validator::make($request->all(), [
@@ -594,10 +740,32 @@ class UserAuthController extends Controller
     }
 
     /**
-     * Get the authenticated User.
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
+        * @OA\Get(
+        * path="/api/customer/user-profile",
+        * operationId="userProfile",
+        * tags={"User Profile"},
+        * summary="UserProfile",
+        * description="User Profile",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function userProfile() {
         $id = auth('userapi')->user()->pk_user_id;
         $userData = Bfsi_users_detail::where(['fr_user_id' => $id])->get()->first();
@@ -735,6 +903,62 @@ class UserAuthController extends Controller
 		return "User Controller";
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/saveBasicInfoAPI",
+        * operationId="saveBasicInfoAPI",
+        * tags={"User Profile"},
+        * summary="Save Basic Info",
+        * description="Save Basic Info",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"cust_name", "father_name", "sex", "dob", "pan_number", "aadhaar_no", "login_id", "contact_no", "address1", "address2", "address3", "state", "city", "pincode", "nominee_name", "nominee_dob", "r_of_nominee_w_app", "augcity", "augstate"},
+        *               @OA\Property(property="cust_name", type="text"),
+        *               @OA\Property(property="father_name", type="text"),
+        *               @OA\Property(property="sex", type="text"),
+        *               @OA\Property(property="dob", type="date"),
+        *               @OA\Property(property="pan_number", type="text"),
+        *               @OA\Property(property="aadhaar_no", type="text"),
+        *               @OA\Property(property="login_id", type="email"),
+        *               @OA\Property(property="contact_no", type="text"),
+        *               @OA\Property(property="address1", type="text"),
+        *               @OA\Property(property="address2", type="text"),
+        *               @OA\Property(property="address3", type="text"),
+        *               @OA\Property(property="state", type="text"),
+        *               @OA\Property(property="city", type="text"),
+        *               @OA\Property(property="pincode", type="text"),
+        *               @OA\Property(property="nominee_name", type="text"),
+        *               @OA\Property(property="nominee_dob", type="date"),
+        *               @OA\Property(property="r_of_nominee_w_app", type="text"),
+        *               @OA\Property(property="augcity", type="text"),
+        *               @OA\Property(property="augstate", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Password reset successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Password reset successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function saveBasicInfoAPI(Request $request) {
         $user = auth('userapi')->user();
         if($user) {
@@ -772,6 +996,43 @@ class UserAuthController extends Controller
                     "statusCode" => 201,
                     "data" => $upstatus,
                     "message" => "User Details Updated"
+                ];
+            } else {
+                $data = [
+                    "statusCode" => 401,
+                    "message" => "User Details updation failed, please try again"
+                ];
+            }
+		    return $data;
+        } else {
+            $data = [
+                "statusCode" => 401,
+                "message" => "Unauthenticated_data."
+            ];
+            return $data;
+        }
+    }
+
+    public function saveBasicInfoFromFoldAPI(Request $request) {
+        $user = auth('userapi')->user();
+        if($user) {
+            $id = $user->pk_user_id;
+            $upstatus = Bfsi_users_detail::where('fr_user_id', $id)->update([
+                'address1' => $request->address1,
+                'address2' => $request->address2,
+                'city' => $request->city,
+                'contact_no' => $request->contact_no,
+                'dob' => $request->dob,
+                'state' => $request->state,
+                'augcity' => $request->augcity,
+                'augstate' => $request->augstate
+            ]);
+            if($upstatus) {
+                $data = [
+                    "statusCode" => 200,
+                    "data" => $upstatus,
+                    "message" => "User Details Updated",
+                    "redirectURL" => '../augmont/buysilver'
                 ];
             } else {
                 $data = [
@@ -850,6 +1111,45 @@ class UserAuthController extends Controller
         }
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/checkPAN",
+        * operationId="checkPAN",
+        * tags={"User Profile"},
+        * summary="Check PAN Number",
+        * description="Check PAN Number",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"family_pan_number", "fullname"},
+        *               @OA\Property(property="family_pan_number", type="text"),
+        *               @OA\Property(property="fullname", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Family Member PAN Verification",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Family ember PAN Verification",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function checkPAN(Request $request) {
         $user = auth('userapi')->user();
         if($user) {
@@ -904,6 +1204,46 @@ class UserAuthController extends Controller
         }
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/requestOTPForVerification",
+        * operationId="requestOTPForVerification",
+        * tags={"User Profile"},
+        * summary="Family PAN Number OTP Verification",
+        * description="Family PAN Number OTP Verification",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"family_pan_number", "fullname", "family_pan_mobile"},
+        *               @OA\Property(property="family_pan_number", type="text"),
+        *               @OA\Property(property="fullname", type="text"),
+        *               @OA\Property(property="family_pan_mobile", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Family Member PAN Verification",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Family ember PAN Verification",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function requestOTPForVerification(Request $request) {
         $user = auth('userapi')->user();
         if($user) {
@@ -938,6 +1278,47 @@ class UserAuthController extends Controller
         }
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/activateFamilyMember",
+        * operationId="activateFamilyMember",
+        * tags={"User Profile"},
+        * summary="Family PAN Number Activation",
+        * description="Family PAN Number Activation",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"family_pan_number", "fullname", "family_pan_mobile", "family_pan_mobile_otp"},
+        *               @OA\Property(property="family_pan_number", type="text"),
+        *               @OA\Property(property="fullname", type="text"),
+        *               @OA\Property(property="family_pan_mobile", type="text"),
+        *               @OA\Property(property="family_pan_mobile_otp", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Family Member PAN Activation",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Family ember PAN Activation",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function activateFamilyMember(Request $request) {
         $user = auth('userapi')->user();
         if($user) {
@@ -982,6 +1363,33 @@ class UserAuthController extends Controller
         }
     }
 
+    /**
+        * @OA\Get(
+        * path="/api/customer/familyListAPI",
+        * operationId="familyListAPI",
+        * tags={"User Profile"},
+        * summary="User's family list",
+        * description="User's family list",
+        * security={{"bearerAuth":{}}},
+        *      @OA\Response(
+        *          response=201,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Data retrieved",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function familyListAPI(Request $request) {
         $user = auth('userapi')->user();
         if($user) {
@@ -1005,37 +1413,131 @@ class UserAuthController extends Controller
         }
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/forgot_sendOTP",
+        * operationId="forgotPswdOTP",
+        * tags={"Forgot Password"},
+        * summary="Forgot Password OTP Sending",
+        * description="Forgot Password OTP Sending",
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"forgot_email"},
+        *               @OA\Property(property="forgot_email", type="email")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="OTP sent to your registered email address",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="OTP sent to your registered email address",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function forgot_sendOTP(Request $request) {
-        // $userDetails = Bfsi_user::where('login_id', $request->forgot_email)->get()->first();
-        $userDetails = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
-            ->where('bfsi_user.login_id', $request->forgot_email)
-            ->get(['bfsi_user.pk_user_id', 'bfsi_user.login_id', 'bfsi_users_details.cust_name'])->first();
-        if($userDetails) {
-            $res2 = (new EmailController)->send_fp_otp_email($request->forgot_email, "FPOTPAPI", $userDetails->cust_name);
-            if($res2=="SUCCESS") {
-                $data = [
-                    'status_code' => 201,
-                    'message' => 'OTP sent to your registered email address',
-                    'email_otp_status' => $res2,
-                    'uid' => $userDetails->pk_user_id
-                ];
-            } else {
-                $data = [
-                    'status_code' => 417,
+        try {
+            $user = Bfsi_user::where([
+              'login_id' => $request->forgot_email
+            ])->first();
+            $userData = Bfsi_user::join('bfsi_users_details', 'bfsi_users_details.fr_user_id', '=', 'bfsi_user.pk_user_id')
+                    ->where('bfsi_user.pk_user_id', $user->pk_user_id)
+                    ->get(['bfsi_user.*', 'bfsi_users_details.*']);
+            if($user) {
+              \Log::channel('accounts')->info(json_encode(['email' => $request->forgot_email, 'contact' => $request->contact, 'function' => "requestFPOTP"]));
+              $res1 = (new SMSController)->send_otp_sms($request->contact, "FPOTP");
+              if($res1=="SUCCESS") {
+                $res2 = (new EmailController)->send_fp_otp_email($request->forgot_email, "FPOTP", $userData[0]->cust_name);
+                if($res2=="SUCCESS") {
+                  $response = [
+                    'statusCode' => '200',
+                    'message' => 'OTP sent to your mobile number and email address',
+                    'email_otp_status' => 'email otp sent',
+                    'mobile_otp_status' => 'mobile otp sent'
+                  ];
+                } else {
+                  $response = [
+                    'statusCode' => '417',
                     'message' => 'Failed sending OTP. Try again...',
-                    'sts' => $res2
+                  ];  
+                }
+              } else {
+                $response = [
+                  'statusCode' => '417',
+                  'message' => 'Failed sending OTP. Try again after sometime...'.$res1,
                 ];  
+              }
+              
+            } else {
+              \Log::channel('accounts')->info(json_encode(['email' => $request->emailAddress, 'contact' => $request->contact, 'function' => "requestFPOTP", 'status' => "Invalid details"]));
+              $result = "true";
+              $response = [
+                'statusCode' => '400',
+                'message' => 'Email Address or Phone number not available',
+              ];
             }
-        } else {
-            $data = [
-                'status_code' => 401,
-                'message' => "Please enter registered email address"
-            ];
+            return $response;
+        } catch (\Exception $e) {
+            \Log::channel('accounts')->error(json_encode(['email' => $request->emailAddress, 'contact' => $request->contact, 'function' => "requestFPOTP", 'status' => $e]));
+            return $e->getMessage();
         }
-        
-        return $data;
     }
 
+
+
+    /**
+        * @OA\Post(
+        * path="/api/customer/forgot_verifyOTP",
+        * operationId="forgot_verifyOTP",
+        * tags={"Forgot Password"},
+        * summary="Forgot Password OTP verification",
+        * description="Forgot Password OTP verification",
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"forgot_email", "forgot_otp"},
+        *               @OA\Property(property="forgot_email", type="email"),
+        *               @OA\Property(property="forgot_otp", type="text")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="OTP verification failed",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="OTP verification failed",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function forgot_verifyOTP(Request $request) {
         $result = (new VerificationController)->fpotp_verification_api($request, "FPOTPAPI");
         if($result=="SUCCESS") {
@@ -1054,6 +1556,47 @@ class UserAuthController extends Controller
         return $data;
     }
 
+    /**
+        * @OA\Post(
+        * path="/api/customer/forgot_submitPassword",
+        * operationId="forgot_submitPassword",
+        * tags={"Forgot Password"},
+        * summary="Reset New Password",
+        * description="Reset New Password",
+        * security={{"bearerAuth":{}}}, 
+        *     @OA\RequestBody(
+        *         @OA\JsonContent(),
+        *         @OA\MediaType(
+        *            mediaType="multipart/form-data",
+        *            @OA\Schema(
+        *               type="object",
+        *               required={"forgot_email", "forgot_otp", "forgot_password", "forgot_repassword"},
+        *               @OA\Property(property="forgot_email", type="email"),
+        *               @OA\Property(property="forgot_otp", type="text"),
+        *               @OA\Property(property="forgot_password", type="password"),
+        *               @OA\Property(property="forgot_repassword", type="password")
+        *            ),
+        *        ),
+        *    ),
+        *      @OA\Response(
+        *          response=201,
+        *          description="Password reset successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=200,
+        *          description="Password reset successfully",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(
+        *          response=422,
+        *          description="Unprocessable Entity",
+        *          @OA\JsonContent()
+        *       ),
+        *      @OA\Response(response=400, description="Bad request"),
+        *      @OA\Response(response=404, description="Resource Not Found"),
+        * )
+        */
     public function forgot_submitPassword(Request $request) {
         $upstatus = Bfsi_user::where('login_id', $request->forgot_email)->update([
             'password' => bcrypt($request->forgot_password),
